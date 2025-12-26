@@ -150,20 +150,9 @@
 
     <footer class="border-t border-border/40 py-6 md:py-8 bg-zinc-50">
         <div class="container flex flex-col items-center justify-center gap-4 text-center px-4">
-            <p class="text-sm text-muted-foreground font-medium">
-                Created by 
-                <a 
-                    href="https://github.com/SilverWolfSociety" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    class="hover:text-foreground underline underline-offset-4"
-                >
-                    Silver Wolf Society Team
-                </a>
-            </p>
+            <p class="text-sm text-muted-foreground font-medium">Created for Silver Wolf</p>
         </div>
     </footer>
-
 
     <div id="toast" class="fixed bottom-4 right-4 z-[100] translate-y-[150%] transition-transform duration-300 ease-out">
         <div class="bg-zinc-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
@@ -180,7 +169,7 @@
 
         const state = {
             email: "{{ email if email else '' }}",
-            refreshInterval: parseInt("{{ refresh_interval|default(5000) }}"), // 5 detik
+            refreshInterval: parseInt("{{ refresh_interval|default(5000) }}"),
             fetchTimeout: null,
             countDownInterval: null,
             storedEmails: [],
@@ -205,7 +194,6 @@
         };
 
         // --- Core Functions ---
-
         async function createEmail() {
             setLoading(true);
             try {
@@ -236,8 +224,6 @@
 
         async function fetchEmails() {
             if (!state.email) return;
-
-            // Update UI status
             els.statusText.innerText = "Checking mail...";
             els.statusText.classList.add("text-blue-500");
 
@@ -245,14 +231,11 @@
                 const res = await fetch('/emails');
                 const emails = await res.json();
                 
-                // Cek email baru
                 if (emails.length > state.storedEmails.length) {
                     const newCount = emails.length - state.storedEmails.length;
                     showToast('New Mail', `You received ${newCount} new message(s)`);
                 }
 
-                // Render ulang jika ada perubahan atau inisialisasi awal
-                // Agar tidak kedip, kita hanya render jika panjang array berubah
                 if (emails.length !== state.storedEmails.length) {
                    renderInbox(emails);
                    state.storedEmails = emails;
@@ -277,9 +260,7 @@
         function startPolling() {
             if (state.fetchTimeout) clearTimeout(state.fetchTimeout);
             if (state.countDownInterval) clearInterval(state.countDownInterval);
-
             fetchEmails();
-
             state.countDownInterval = setInterval(() => {
                 if (state.timeLeft > 0) {
                     state.timeLeft--;
@@ -289,7 +270,6 @@
         }
 
         // --- UI Logic ---
-
         function updateActiveEmailUI(email, name) {
             els.containerActive.classList.remove('hidden');
             els.displayEmail.textContent = email;
@@ -309,6 +289,10 @@
             emails.slice().reverse().forEach(email => {
                 const subject = email.subject || 'No Subject';
                 const firstWord = subject.trim().split(/\s+/)[0]; 
+                
+                // --- FIX: Gunakan nama kolom Database (sender, received_at) ---
+                const senderName = email.sender || email.from || 'Unknown'; 
+                const dateStr = email.received_at || email.date || new Date().toISOString();
 
                 const card = document.createElement('div');
                 card.className = "rounded-lg border bg-card text-card-foreground shadow-sm animate-fade-in group hover:border-zinc-300 transition-colors";
@@ -316,8 +300,8 @@
                 card.innerHTML = `
                     <div class="flex flex-col space-y-1.5 p-4 cursor-pointer" onclick="toggleBody(this)">
                         <div class="flex items-center justify-between">
-                            <div class="font-semibold text-sm text-zinc-900">${escapeHtml(email.from)}</div>
-                            <div class="text-xs text-muted-foreground">${formatDate(email.date)}</div>
+                            <div class="font-semibold text-sm text-zinc-900">${escapeHtml(senderName)}</div>
+                            <div class="text-xs text-muted-foreground">${formatDate(dateStr)}</div>
                         </div>
                         <div class="flex items-center gap-2 mt-1">
                             <h4 class="font-medium text-sm leading-none tracking-tight">${escapeHtml(subject)}</h4>
@@ -345,100 +329,61 @@
             body.classList.toggle('hidden');
         }
 
-        // --- ROBUST COPY FUNCTION (HTTP & HTTPS) ---
-        
-        // Fungsi inti copy yang menangani fallback
+        // --- Copy Logic (HTTP Fallback) ---
         function copyToClipboard(text) {
-            // Trim whitespace untuk memastikan bersih
             text = text.trim();
-            
             return new Promise((resolve, reject) => {
-                // 1. Coba API modern (HTTPS)
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(text)
-                        .then(resolve)
-                        .catch(err => {
-                            // Jika gagal, coba fallback
-                            fallbackCopy(text, resolve, reject);
-                        });
+                    navigator.clipboard.writeText(text).then(resolve).catch(() => fallbackCopy(text, resolve, reject));
                 } else {
-                    // 2. Langsung Fallback jika API tidak ada (HTTP)
                     fallbackCopy(text, resolve, reject);
                 }
             });
         }
-
         function fallbackCopy(text, resolve, reject) {
             try {
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
-                
-                // Sembunyikan textarea
                 textArea.style.position = "fixed";
                 textArea.style.left = "-9999px";
-                textArea.style.top = "0";
                 document.body.appendChild(textArea);
-                
                 textArea.focus();
                 textArea.select();
-                
                 const successful = document.execCommand('copy');
                 document.body.removeChild(textArea);
-                
-                if (successful) resolve();
-                else reject(new Error("Fallback copy failed"));
-            } catch (err) {
-                reject(err);
-            }
+                if (successful) resolve(); else reject(new Error("Fallback failed"));
+            } catch (err) { reject(err); }
         }
-
-        // Handler untuk UI Tombol Copy
         function performCopy(text, btnElement) {
             if (!text) return;
-            
             copyToClipboard(text).then(() => {
-                // Sukses: Ubah icon
                 const icon = btnElement.querySelector('i');
-                const originalIconName = icon.getAttribute('data-lucide');
-                
                 icon.setAttribute('data-lucide', 'check');
                 icon.classList.add('text-green-500');
                 lucide.createIcons();
-
                 showToast('Copied', `Copied: ${text.substring(0, 20)}...`);
-
                 setTimeout(() => {
-                    icon.setAttribute('data-lucide', 'copy'); // Reset ke icon copy default
+                    icon.setAttribute('data-lucide', 'copy');
                     icon.classList.remove('text-green-500');
                     lucide.createIcons();
                 }, 1500);
-
-            }).catch(err => {
-                console.error("Copy failed:", err);
-                showToast('Error', 'Copy failed (Manual copy required)', true);
-            });
+            }).catch(() => showToast('Error', 'Copy failed', true));
         }
-
         function copyEmailMain() {
             const email = els.displayEmail.textContent;
             const btnText = document.getElementById('copy-text-main');
-            
             copyToClipboard(email).then(() => {
                 btnText.innerHTML = `<i data-lucide="check" class="mr-2 h-4 w-4 text-green-500"></i> Copied`;
                 lucide.createIcons();
                 showToast('Copied', 'Email address copied');
-
                 setTimeout(() => {
                     btnText.innerHTML = `<i data-lucide="copy" class="mr-2 h-4 w-4"></i> Copy`;
                     lucide.createIcons();
                 }, 2000);
-            }).catch(() => {
-                showToast('Error', 'Copy failed', true);
-            });
+            }).catch(() => showToast('Error', 'Copy failed', true));
         }
 
-        // --- Utilities ---
-
+        // --- Helpers ---
         function resetInbox() {
             els.inboxContainer.innerHTML = '';
             els.inboxContainer.appendChild(els.emptyState);
@@ -446,7 +391,6 @@
             state.storedEmails = [];
             state.timeLeft = 5;
         }
-
         function setLoading(isLoading) {
             const btn = els.btnCreate;
             if (isLoading) {
@@ -458,16 +402,13 @@
             }
             lucide.createIcons();
         }
-
         function showToast(title, message, isError = false) {
             const toast = els.toast;
             const titleEl = document.getElementById('toast-title');
             const msgEl = document.getElementById('toast-message');
             const icon = toast.querySelector('i');
-
             titleEl.textContent = title;
             msgEl.textContent = message;
-
             if (isError) {
                 icon.setAttribute('data-lucide', 'alert-circle');
                 icon.classList.remove('text-green-400');
@@ -478,21 +419,17 @@
                 icon.classList.remove('text-red-400');
             }
             lucide.createIcons();
-
             toast.classList.remove('translate-y-[150%]');
-            setTimeout(() => {
-                toast.classList.add('translate-y-[150%]');
-            }, 3000);
+            setTimeout(() => { toast.classList.add('translate-y-[150%]'); }, 3000);
         }
-
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-
         function formatDate(dateString) {
+            if(!dateString) return '';
             const date = new Date(dateString);
             return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }).format(date);
         }
