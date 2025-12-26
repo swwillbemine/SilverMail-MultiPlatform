@@ -1,13 +1,17 @@
 import sqlite3
+import os
 from datetime import datetime
 
-DB_NAME = "emails.db"
+# Gunakan absolute path agar aman saat dijalankan systemd
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(BASE_DIR, "emails.db")
+LOG_FILE = os.path.join(BASE_DIR, "system.log")
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     
-    # Tabel Email (Sudah ada)
+    # Tabel Email
     c.execute('''
         CREATE TABLE IF NOT EXISTS emails (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +23,7 @@ def init_db():
         )
     ''')
 
-    # Tabel Users (BARU: Untuk mencatat email yang dibuat)
+    # Tabel Users (Stats)
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
@@ -31,7 +35,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# --- FUNGSI EMAIL (LAMA) ---
+# --- FUNGSI EMAIL ---
 def save_email(recipient, sender, subject, body):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -49,13 +53,12 @@ def get_emails_for_user(email_address):
     conn.close()
     return [dict(row) for row in rows]
 
-# --- FUNGSI BARU UNTUK ADMIN & STATISTIK ---
+# --- FUNGSI USER & STATS ---
 
 def register_user(email_address, ip_address):
     """Mencatat user baru saat generate email"""
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    # Insert or Ignore agar tidak error jika user refresh page
     c.execute('INSERT OR IGNORE INTO users (email, created_at, ip_address) VALUES (?, ?, ?)',
               (email_address, datetime.now().isoformat(), ip_address))
     conn.commit()
@@ -79,3 +82,18 @@ def get_user_stats():
     rows = c.fetchall()
     conn.close()
     return [dict(row) for row in rows]
+
+# --- FUNGSI LOGS (YANG SEBELUMNYA HILANG) ---
+
+def get_system_logs(lines=100):
+    """Membaca file system.log"""
+    if not os.path.exists(LOG_FILE):
+        return ["Log file not found at: " + LOG_FILE]
+    
+    try:
+        with open(LOG_FILE, 'r') as f:
+            all_lines = f.readlines()
+            # Ambil N baris terakhir dan balik urutannya (terbaru di atas)
+            return all_lines[-lines:][::-1]
+    except Exception as e:
+        return [f"Error reading logs: {str(e)}"]
