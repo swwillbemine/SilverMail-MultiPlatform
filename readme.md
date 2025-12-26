@@ -67,7 +67,7 @@ pip3 install flask aiosmtpd gunicorn
 Buat file konfigurasi untuk mendaftarkan domain-domain yang akan digunakan.
 
 ```bash
-sudo nano domain.json
+sudo nano domains.json
 ```
 Isi dengan format JSON array (list). Ganti dengan nama domain Anda:
 ```bash
