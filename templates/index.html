@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en" class="h-full antialiased selection:bg-zinc-900 selection:text-white">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>SilverMail - Disposable Email</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        border: "hsl(var(--border))", input: "hsl(var(--input))", ring: "hsl(var(--ring))",
+                        background: "hsl(var(--background))", foreground: "hsl(var(--foreground))",
+                        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+                        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+                        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+                        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+                        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+                        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+                    },
+                    borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        :root {
+            --background: 0 0% 100%; --foreground: 240 10% 3.9%; --card: 0 0% 100%; --card-foreground: 240 10% 3.9%;
+            --popover: 0 0% 100%; --popover-foreground: 240 10% 3.9%; --primary: 240 5.9% 10%; --primary-foreground: 0 0% 98%;
+            --secondary: 240 4.8% 95.9%; --secondary-foreground: 240 5.9% 10%; --muted: 240 4.8% 95.9%; --muted-foreground: 240 3.8% 46.1%;
+            --accent: 240 4.8% 95.9%; --accent-foreground: 240 5.9% 10%; --destructive: 0 84.2% 60.2%; --destructive-foreground: 0 0% 98%;
+            --border: 240 5.9% 90%; --input: 240 5.9% 90%; --ring: 240 5.9% 10%; --radius: 0.75rem;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: hsl(var(--border)); border-radius: 20px; }
+    </style>
+</head>
+
+<body class="bg-zinc-50 text-zinc-900 min-h-screen flex flex-col font-sans">
+
+    <header class="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur">
+        <div class="container flex h-14 max-w-screen-2xl items-center px-4 mx-auto justify-between">
+            <div class="flex items-center gap-2">
+                <span class="font-bold tracking-tight text-lg">SilverMail</span>
+            </div>
+            <a href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <i data-lucide="github" class="h-5 w-5"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="flex-1 container max-w-2xl mx-auto px-4 py-8 md:py-12">
+        
+        <div class="rounded-xl border bg-card text-card-foreground shadow-sm mb-6">
+            <div class="flex flex-col space-y-1.5 p-6 pb-4">
+                <h3 class="font-semibold leading-none tracking-tight">Create Identity</h3>
+                <p class="text-sm text-muted-foreground">Generate a secure, temporary email address instantly.</p>
+            </div>
+            <div class="p-6 pt-0 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium leading-none" for="username">Username <span class="text-muted-foreground font-normal">(Optional)</span></label>
+                        <input class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" id="username" placeholder="random">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium leading-none" for="domain">Domain</label>
+                        <select id="domain" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring">
+                            {% for domain in domains %}
+                            <option value="{{ domain }}">@{{ domain }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                    <button id="btn-create" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full sm:w-auto">
+                        <i data-lucide="sparkles" class="mr-2 h-4 w-4"></i> Generate Email
+                    </button>
+                    <button id="btn-reset" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full sm:w-auto">
+                        <i data-lucide="rotate-ccw" class="mr-2 h-4 w-4"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="active-email-container" class="hidden mb-6 animate-fade-in">
+            <div class="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+                <div class="p-6 bg-zinc-50/50">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="space-y-1 overflow-hidden">
+                            <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Temporary Inbox</p>
+                            <div class="flex items-center gap-2">
+                                <h2 id="display-email" class="text-xl md:text-2xl font-bold text-zinc-900 truncate tracking-tight">...</h2>
+                            </div>
+                            <p id="display-name" class="text-sm text-zinc-500 flex items-center gap-1">
+                                <i data-lucide="user" class="h-3 w-3"></i> <span id="name-text">User</span>
+                            </p>
+                        </div>
+                        <button onclick="copyEmailMain()" id="btn-copy-main" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-white border border-input shadow-sm hover:bg-zinc-100 h-10 px-4 py-2 min-w-[100px] transition-all duration-200">
+                            <span id="copy-text-main" class="flex items-center"><i data-lucide="copy" class="mr-2 h-4 w-4"></i> Copy</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="px-6 py-2 bg-zinc-100/50 border-t border-zinc-100 flex items-center justify-between text-xs text-muted-foreground">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        <span id="status-text">Auto-refreshing</span>
+                    </div>
+                    <span id="timer-display">Next check in 5s</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="font-semibold text-lg tracking-tight">Inbox</h3>
+                <span id="email-counter" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground">
+                    0 Messages
+                </span>
+            </div>
+
+            <div id="inbox-container" class="space-y-3 min-h-[300px]">
+                <div id="empty-state" class="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-zinc-200 rounded-xl bg-zinc-50/50">
+                    <div class="rounded-full bg-zinc-100 p-4 mb-4">
+                        <i data-lucide="inbox" class="h-8 w-8 text-zinc-400"></i>
+                    </div>
+                    <h3 class="font-medium text-zinc-900">No emails yet</h3>
+                    <p class="text-sm text-zinc-500 mt-1 max-w-xs">Messages will appear here automatically.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-border/40 py-6 md:py-8 bg-zinc-50">
+        <div class="container flex flex-col items-center justify-center gap-4 text-center px-4">
+            <p class="text-sm text-muted-foreground font-medium">
+                Created by 
+                <a 
+                    href="https://github.com/SilverWolfSociety" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="hover:text-foreground underline underline-offset-4"
+                >
+                    Silver Wolf Society Team
+                </a>
+            </p>
+        </div>
+    </footer>
+
+
+    <div id="toast" class="fixed bottom-4 right-4 z-[100] translate-y-[150%] transition-transform duration-300 ease-out">
+        <div class="bg-zinc-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
+            <i data-lucide="check-circle-2" class="h-5 w-5 text-green-400"></i>
+            <div>
+                <h4 id="toast-title" class="text-sm font-semibold">Success</h4>
+                <p id="toast-message" class="text-xs text-zinc-300">Action completed.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const state = {
+            email: "{{ email if email else '' }}",
+            refreshInterval: parseInt("{{ refresh_interval|default(5000) }}"), // 5 detik
+            fetchTimeout: null,
+            countDownInterval: null,
+            storedEmails: [],
+            timeLeft: 5
+        };
+
+        const els = {
+            btnCreate: document.getElementById('btn-create'),
+            btnReset: document.getElementById('btn-reset'),
+            containerActive: document.getElementById('active-email-container'),
+            displayEmail: document.getElementById('display-email'),
+            displayName: document.getElementById('display-name'),
+            nameText: document.getElementById('name-text'),
+            inboxContainer: document.getElementById('inbox-container'),
+            emptyState: document.getElementById('empty-state'),
+            counter: document.getElementById('email-counter'),
+            usernameInput: document.getElementById('username'),
+            domainInput: document.getElementById('domain'),
+            timerDisplay: document.getElementById('timer-display'),
+            statusText: document.getElementById('status-text'),
+            toast: document.getElementById('toast')
+        };
+
+        // --- Core Functions ---
+
+        async function createEmail() {
+            setLoading(true);
+            try {
+                const username = els.usernameInput.value.trim();
+                const domain = els.domainInput.value;
+                const res = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ username, domain })
+                });
+
+                if (!res.ok) throw new Error('Failed to generate');
+                const data = await res.json();
+                
+                if (data.email) {
+                    state.email = data.email;
+                    updateActiveEmailUI(data.email, data.fullName);
+                    showToast('Identity Created', `Active: ${data.email}`);
+                    resetInbox();
+                    startPolling();
+                }
+            } catch (err) {
+                showToast('Error', err.message || 'Could not create email', true);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function fetchEmails() {
+            if (!state.email) return;
+
+            // Update UI status
+            els.statusText.innerText = "Checking mail...";
+            els.statusText.classList.add("text-blue-500");
+
+            try {
+                const res = await fetch('/emails');
+                const emails = await res.json();
+                
+                // Cek email baru
+                if (emails.length > state.storedEmails.length) {
+                    const newCount = emails.length - state.storedEmails.length;
+                    showToast('New Mail', `You received ${newCount} new message(s)`);
+                }
+
+                // Render ulang jika ada perubahan atau inisialisasi awal
+                // Agar tidak kedip, kita hanya render jika panjang array berubah
+                if (emails.length !== state.storedEmails.length) {
+                   renderInbox(emails);
+                   state.storedEmails = emails;
+                }
+
+            } catch (err) {
+                console.error("Polling error", err);
+            } finally {
+                els.statusText.innerText = "Auto-refreshing";
+                els.statusText.classList.remove("text-blue-500");
+                resetTimer();
+            }
+        }
+
+        function resetTimer() {
+            if (state.fetchTimeout) clearTimeout(state.fetchTimeout);
+            state.timeLeft = state.refreshInterval / 1000;
+            els.timerDisplay.textContent = `Next check in ${state.timeLeft}s`;
+            state.fetchTimeout = setTimeout(fetchEmails, state.refreshInterval);
+        }
+
+        function startPolling() {
+            if (state.fetchTimeout) clearTimeout(state.fetchTimeout);
+            if (state.countDownInterval) clearInterval(state.countDownInterval);
+
+            fetchEmails();
+
+            state.countDownInterval = setInterval(() => {
+                if (state.timeLeft > 0) {
+                    state.timeLeft--;
+                    els.timerDisplay.textContent = `Next check in ${state.timeLeft}s`;
+                }
+            }, 1000);
+        }
+
+        // --- UI Logic ---
+
+        function updateActiveEmailUI(email, name) {
+            els.containerActive.classList.remove('hidden');
+            els.displayEmail.textContent = email;
+            els.nameText.textContent = name || 'User';
+            if(window.innerWidth < 768) els.containerActive.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderInbox(emails) {
+            if (emails.length === 0) {
+                if (!document.getElementById('empty-state')) resetInbox();
+                return;
+            }
+
+            els.counter.textContent = `${emails.length} Messages`;
+            els.inboxContainer.innerHTML = '';
+            
+            emails.slice().reverse().forEach(email => {
+                const subject = email.subject || 'No Subject';
+                const firstWord = subject.trim().split(/\s+/)[0]; 
+
+                const card = document.createElement('div');
+                card.className = "rounded-lg border bg-card text-card-foreground shadow-sm animate-fade-in group hover:border-zinc-300 transition-colors";
+                
+                card.innerHTML = `
+                    <div class="flex flex-col space-y-1.5 p-4 cursor-pointer" onclick="toggleBody(this)">
+                        <div class="flex items-center justify-between">
+                            <div class="font-semibold text-sm text-zinc-900">${escapeHtml(email.from)}</div>
+                            <div class="text-xs text-muted-foreground">${formatDate(email.date)}</div>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <h4 class="font-medium text-sm leading-none tracking-tight">${escapeHtml(subject)}</h4>
+                            <button onclick="event.stopPropagation(); performCopy('${firstWord}', this)" 
+                                    class="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-ring"
+                                    title="Copy: ${firstWord}">
+                                <i data-lucide="copy" class="h-3 w-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="email-body hidden px-4 pb-4 pt-0 text-sm text-zinc-600 border-t border-zinc-100 mt-2 bg-zinc-50/50 rounded-b-lg p-3 font-mono overflow-x-auto">
+                        ${escapeHtml(email.body)}
+                    </div>
+                `;
+                els.inboxContainer.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function toggleBody(headerElement) {
+            const body = headerElement.nextElementSibling;
+            document.querySelectorAll('.email-body').forEach(el => {
+                if (el !== body) el.classList.add('hidden');
+            });
+            body.classList.toggle('hidden');
+        }
+
+        // --- ROBUST COPY FUNCTION (HTTP & HTTPS) ---
+        
+        // Fungsi inti copy yang menangani fallback
+        function copyToClipboard(text) {
+            // Trim whitespace untuk memastikan bersih
+            text = text.trim();
+            
+            return new Promise((resolve, reject) => {
+                // 1. Coba API modern (HTTPS)
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text)
+                        .then(resolve)
+                        .catch(err => {
+                            // Jika gagal, coba fallback
+                            fallbackCopy(text, resolve, reject);
+                        });
+                } else {
+                    // 2. Langsung Fallback jika API tidak ada (HTTP)
+                    fallbackCopy(text, resolve, reject);
+                }
+            });
+        }
+
+        function fallbackCopy(text, resolve, reject) {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                
+                // Sembunyikan textarea
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                
+                textArea.focus();
+                textArea.select();
+                
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) resolve();
+                else reject(new Error("Fallback copy failed"));
+            } catch (err) {
+                reject(err);
+            }
+        }
+
+        // Handler untuk UI Tombol Copy
+        function performCopy(text, btnElement) {
+            if (!text) return;
+            
+            copyToClipboard(text).then(() => {
+                // Sukses: Ubah icon
+                const icon = btnElement.querySelector('i');
+                const originalIconName = icon.getAttribute('data-lucide');
+                
+                icon.setAttribute('data-lucide', 'check');
+                icon.classList.add('text-green-500');
+                lucide.createIcons();
+
+                showToast('Copied', `Copied: ${text.substring(0, 20)}...`);
+
+                setTimeout(() => {
+                    icon.setAttribute('data-lucide', 'copy'); // Reset ke icon copy default
+                    icon.classList.remove('text-green-500');
+                    lucide.createIcons();
+                }, 1500);
+
+            }).catch(err => {
+                console.error("Copy failed:", err);
+                showToast('Error', 'Copy failed (Manual copy required)', true);
+            });
+        }
+
+        function copyEmailMain() {
+            const email = els.displayEmail.textContent;
+            const btnText = document.getElementById('copy-text-main');
+            
+            copyToClipboard(email).then(() => {
+                btnText.innerHTML = `<i data-lucide="check" class="mr-2 h-4 w-4 text-green-500"></i> Copied`;
+                lucide.createIcons();
+                showToast('Copied', 'Email address copied');
+
+                setTimeout(() => {
+                    btnText.innerHTML = `<i data-lucide="copy" class="mr-2 h-4 w-4"></i> Copy`;
+                    lucide.createIcons();
+                }, 2000);
+            }).catch(() => {
+                showToast('Error', 'Copy failed', true);
+            });
+        }
+
+        // --- Utilities ---
+
+        function resetInbox() {
+            els.inboxContainer.innerHTML = '';
+            els.inboxContainer.appendChild(els.emptyState);
+            els.counter.textContent = '0 Messages';
+            state.storedEmails = [];
+            state.timeLeft = 5;
+        }
+
+        function setLoading(isLoading) {
+            const btn = els.btnCreate;
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = `<i data-lucide="loader-2" class="mr-2 h-4 w-4 animate-spin"></i> Creating...`;
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="sparkles" class="mr-2 h-4 w-4"></i> Generate Email`;
+            }
+            lucide.createIcons();
+        }
+
+        function showToast(title, message, isError = false) {
+            const toast = els.toast;
+            const titleEl = document.getElementById('toast-title');
+            const msgEl = document.getElementById('toast-message');
+            const icon = toast.querySelector('i');
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+
+            if (isError) {
+                icon.setAttribute('data-lucide', 'alert-circle');
+                icon.classList.remove('text-green-400');
+                icon.classList.add('text-red-400');
+            } else {
+                icon.setAttribute('data-lucide', 'check-circle-2');
+                icon.classList.add('text-green-400');
+                icon.classList.remove('text-red-400');
+            }
+            lucide.createIcons();
+
+            toast.classList.remove('translate-y-[150%]');
+            setTimeout(() => {
+                toast.classList.add('translate-y-[150%]');
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }).format(date);
+        }
+
+        // --- Init Listeners ---
+        els.btnCreate.addEventListener('click', createEmail);
+        els.btnReset.addEventListener('click', () => {
+            state.email = null;
+            if (state.fetchTimeout) clearTimeout(state.fetchTimeout);
+            if (state.countDownInterval) clearInterval(state.countDownInterval);
+            els.containerActive.classList.add('hidden');
+            resetInbox();
+            showToast('Session Reset', 'Your session has been cleared');
+        });
+
+        if (state.email) {
+            updateActiveEmailUI(state.email, 'User');
+            startPolling();
+        }
+    </script>
+</body>
+</html>
