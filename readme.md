@@ -1,4 +1,4 @@
-# 📧 SilverMail - MultiDomain
+# 📧 SilverMail - MultiPlatform
 
 ![Ubuntu 22.04](https://img.shields.io/badge/OS-Ubuntu%20Server%2022.04-orange?style=flat-square&logo=ubuntu)
 ![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat-square&logo=python)
@@ -51,7 +51,7 @@ Unduh source code SilverMail ke server Anda.
 git clone https://github.com/swwillbemine/SilverMail-MultiPlatform
 
 # Masuk ke direktori project
-cd SilverMail-MultiDomain
+cd SilverMail-MultiPlatform
 ```
 
 ### 3. Install Python Libraries
@@ -98,7 +98,7 @@ Aplikasi akan berjalan otomatis di latar belakang (background) dan auto-restart 
 ```bash
 sudo nano /etc/systemd/system/silvermail.service
 ```
-Salin konfigurasi berikut ke dalamnya. *Pastikan path/lokasi direktori sesuai dengan tempat Anda melakukan clone (default: `/root/SilverMail-MultiDomain`).*
+Salin konfigurasi berikut ke dalamnya. *Pastikan path/lokasi direktori sesuai dengan tempat Anda melakukan clone (default: `/root/SilverMail-MultiPlatform`).*
 
 ```toml
 [Unit]
@@ -111,10 +111,10 @@ User=root
 Group=root
 
 # Working Directory (Sesuaikan jika lokasi clone berbeda)
-WorkingDirectory=/root/SilverMail-MultiDomain
+WorkingDirectory=/root/SilverMail-MultiPlatform
 
 # Jalankan Launcher
-ExecStart=/usr/bin/python3 /root/SilverMail-MultiDomain/launcher.py
+ExecStart=/usr/bin/python3 /root/SilverMail-MultiPlatform/launcher.py
 
 # Restart otomatis jika crash
 Restart=always
