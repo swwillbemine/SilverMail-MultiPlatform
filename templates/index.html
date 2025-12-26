@@ -278,7 +278,8 @@
         }
 
         function renderInbox(emails) {
-            if (emails.length === 0) {
+            // 1. Reset Container
+            if (!emails || emails.length === 0) {
                 if (!document.getElementById('empty-state')) resetInbox();
                 return;
             }
@@ -286,39 +287,60 @@
             els.counter.textContent = `${emails.length} Messages`;
             els.inboxContainer.innerHTML = '';
             
+            // 2. Loop Email dengan Error Handling
             emails.slice().reverse().forEach(email => {
-                const subject = email.subject || 'No Subject';
-                const firstWord = subject.trim().split(/\s+/)[0]; 
-                
-                // --- FIX: Gunakan nama kolom Database (sender, received_at) ---
-                const senderName = email.sender || email.from || 'Unknown'; 
-                const dateStr = email.received_at || email.date || new Date().toISOString();
+                try {
+                    // --- MAPPING DATA (PENTING) ---
+                    // Backend mengirim 'sender' & 'received_at'
+                    // Kita mapping agar variabel tidak undefined
+                    const senderName = email.sender || email.from || 'Unknown Sender';
+                    const dateRaw = email.received_at || email.date || new Date().toISOString();
+                    const subject = email.subject || '(No Subject)';
+                    const bodyContent = email.body || '';
 
-                const card = document.createElement('div');
-                card.className = "rounded-lg border bg-card text-card-foreground shadow-sm animate-fade-in group hover:border-zinc-300 transition-colors";
+                    // Ambil kata pertama untuk tombol Copy OTP
+                    const firstWord = subject.trim().split(/\s+/)[0]; 
+
+                    // Format Tanggal Aman
+                    let dateDisplay = 'Just now';
+                    try {
+                        dateDisplay = formatDate(dateRaw);
+                    } catch (e) {
+                        console.error("Date error:", e);
+                    }
+
+                    // --- HTML ELEMENT ---
+                    const card = document.createElement('div');
+                    card.className = "rounded-lg border bg-card text-card-foreground shadow-sm animate-fade-in group hover:border-zinc-300 transition-colors";
+                    
+                    card.innerHTML = `
+                        <div class="flex flex-col space-y-1.5 p-4 cursor-pointer" onclick="toggleBody(this)">
+                            <div class="flex items-center justify-between">
+                                <div class="font-semibold text-sm text-zinc-900">${escapeHtml(senderName)}</div>
+                                <div class="text-xs text-muted-foreground">${dateDisplay}</div>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <h4 class="font-medium text-sm leading-none tracking-tight">${escapeHtml(subject)}</h4>
+                                <button onclick="event.stopPropagation(); performCopy('${firstWord}', this)" 
+                                        class="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-ring"
+                                        title="Copy: ${firstWord}">
+                                    <i data-lucide="copy" class="h-3 w-3"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="email-body hidden px-4 pb-4 pt-0 text-sm text-zinc-600 border-t border-zinc-100 mt-2 bg-zinc-50/50 rounded-b-lg p-3 font-mono overflow-x-auto">
+                            ${escapeHtml(bodyContent)}
+                        </div>
+                    `;
+                    els.inboxContainer.appendChild(card);
                 
-                card.innerHTML = `
-                    <div class="flex flex-col space-y-1.5 p-4 cursor-pointer" onclick="toggleBody(this)">
-                        <div class="flex items-center justify-between">
-                            <div class="font-semibold text-sm text-zinc-900">${escapeHtml(senderName)}</div>
-                            <div class="text-xs text-muted-foreground">${formatDate(dateStr)}</div>
-                        </div>
-                        <div class="flex items-center gap-2 mt-1">
-                            <h4 class="font-medium text-sm leading-none tracking-tight">${escapeHtml(subject)}</h4>
-                            <button onclick="event.stopPropagation(); performCopy('${firstWord}', this)" 
-                                    class="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                                    title="Copy: ${firstWord}">
-                                <i data-lucide="copy" class="h-3 w-3"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="email-body hidden px-4 pb-4 pt-0 text-sm text-zinc-600 border-t border-zinc-100 mt-2 bg-zinc-50/50 rounded-b-lg p-3 font-mono overflow-x-auto">
-                        ${escapeHtml(email.body)}
-                    </div>
-                `;
-                els.inboxContainer.appendChild(card);
+                } catch (err) {
+                    console.error("Error rendering email item:", err, email);
+                }
             });
-            lucide.createIcons();
+            
+            // Render Icon Lucide
+            if (window.lucide) lucide.createIcons();
         }
 
         function toggleBody(headerElement) {
