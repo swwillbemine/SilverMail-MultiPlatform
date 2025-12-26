@@ -5,11 +5,10 @@ import string
 from functools import wraps
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 
-# Import fungsi baru dari database
-from database import get_emails_for_user, get_user_stats, register_user, init_db
+# Import fungsi database
+from database import get_emails_for_user, get_user_stats, register_user, init_db, get_system_logs
 
 # --- SETUP AWAL ---
-# Pastikan DB terinit dengan tabel baru
 init_db()
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -17,7 +16,7 @@ template_dir = os.path.join(base_dir, 'templates')
 
 app = Flask(__name__, template_folder=template_dir)
 
-# Config Loader (Sama seperti sebelumnya)
+# Load Config
 def load_json_file(filename, default_value):
     try:
         file_path = os.path.join(base_dir, filename)
@@ -29,30 +28,15 @@ def load_json_file(filename, default_value):
 ALLOWED_DOMAINS = load_json_file('domains.json', ["localhost"])
 NAME_LIST = load_json_file('names.json', ["user"])
 ADMIN_CONFIG = load_json_file('config.json', {
-    "admin_username": "admin",
+    "admin_username": "admin", 
     "admin_password": "password",
-    "secret_key": "fallback_secret_key" # Default jika config hilang
+    "secret_key": "default_secret_key"
 })
 
 app.secret_key = ADMIN_CONFIG.get("secret_key")
-
 ADMIN_USERNAME = ADMIN_CONFIG.get("admin_username")
 ADMIN_PASSWORD = ADMIN_CONFIG.get("admin_password")
 
-
-# Helper Log Reader
-def get_system_logs(lines=100):
-    log_path = os.path.join(base_dir, 'system.log')
-    if not os.path.exists(log_path):
-        return ["Log file not found."]
-    
-    try:
-        # Membaca N baris terakhir (sederhana)
-        with open(log_path, 'r') as f:
-            all_lines = f.readlines()
-            return all_lines[-lines:][::-1] # Ambil terakhir & balik urutan (terbaru diatas)
-    except Exception as e:
-        return [f"Error reading logs: {str(e)}"]
 
 # --- AUTH DECORATOR ---
 def login_required(f):
@@ -89,7 +73,7 @@ def generate_email():
     full_email = f"{username}@{domain}".lower()
     session['email'] = full_email
     
-    # [BARU] Catat User ke Database
+    # Catat User
     user_ip = request.remote_addr
     register_user(full_email, user_ip)
     
@@ -105,8 +89,9 @@ def get_emails():
     if not current_email: return jsonify([])
     return jsonify(get_emails_for_user(current_email.lower()))
 
-# --- ADMIN ROUTES ---
-@app.route('/temp/login', methods=['GET', 'POST'])
+# --- ADMIN ROUTES (UPDATED: /temp -> /admin) ---
+
+@app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         user = request.form.get('username')
@@ -118,37 +103,36 @@ def admin_login():
             return render_template('login.html', error="Invalid Credentials")
     return render_template('login.html')
 
-@app.route('/temp')
+@app.route('/admin')
 @login_required
 def admin_dashboard():
-    # Ambil Statistik User
-    user_stats = get_user_stats()
-    
-    # Ambil Logs
-    system_logs = get_system_logs()
-    
-    return render_template('admin.html', stats=user_stats, logs=system_logs)
+    # Render halaman awal saja, data diambil via API
+    return render_template('admin.html')
 
-@app.route('/temp/logout')
+@app.route('/admin/logout')
 def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
+# --- ADMIN API (DATA) ---
 
 @app.route('/api/admin/data')
 @login_required
 def api_admin_data():
-    """API untuk Auto-Refresh Dashboard"""
-    # 1. Ambil Stats User
+    """API untuk Auto-Refresh Dashboard Utama"""
     stats = get_user_stats()
-    
-    # 2. Ambil Logs
     logs = get_system_logs(lines=100)
-    
     return jsonify({
         "stats": stats,
         "logs": logs
     })
+
+@app.route('/api/admin/inbox/<path:email>')
+@login_required
+def api_admin_user_inbox(email):
+    """API BARU: Mengambil isi email user tertentu untuk Admin"""
+    emails = get_emails_for_user(email)
+    return jsonify(emails)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

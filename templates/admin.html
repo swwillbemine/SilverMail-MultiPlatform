@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SilverMail Live Monitor</title>
+    <title>SilverMail Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -13,16 +13,17 @@
             font-family: 'Courier New', Courier, monospace;
             font-size: 0.75rem;
         }
-        /* Custom scrollbar for logs */
         .log-console::-webkit-scrollbar { width: 8px; }
         .log-console::-webkit-scrollbar-track { background: #1e1e1e; }
         .log-console::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-        .log-console::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        /* Modal Transitions */
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
 
-    <nav class="bg-white shadow-sm border-b sticky top-0 z-50">
+    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-3">
@@ -38,7 +39,7 @@
                     <a href="/" target="_blank" class="text-gray-500 hover:text-blue-600 flex items-center text-sm transition">
                         <i data-lucide="external-link" class="w-4 h-4 mr-1"></i> Public View
                     </a>
-                    <a href="/temp/logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition shadow-sm">
+                    <a href="/admin/logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition shadow-sm">
                         Logout
                     </a>
                 </div>
@@ -86,13 +87,11 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User / Email</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Inbox</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-100" id="users-table-body">
-                            <tr>
-                                <td colspan="3" class="px-6 py-10 text-center text-gray-400">Loading data...</td>
-                            </tr>
+                            <tr><td colspan="3" class="px-6 py-10 text-center text-gray-400">Loading data...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -117,20 +116,61 @@
         </div>
     </div>
 
+    <div id="inbox-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closeModal()"></div>
+
+        <div class="fixed inset-0 z-10 overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                    
+                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b">
+                        <div class="sm:flex sm:items-center">
+                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <i data-lucide="mail" class="h-6 w-6 text-blue-600"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                                <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Checking Inbox...</h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-500" id="modal-subtitle">Fetching emails from server.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                            <i data-lucide="x" class="h-6 w-6"></i>
+                        </button>
+                    </div>
+
+                    <div class="bg-gray-50 px-4 py-4 sm:p-6 max-h-[60vh] overflow-y-auto" id="modal-content">
+                        </div>
+
+                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t">
+                        <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         lucide.createIcons();
+        
+        // Element References
         const usersTableBody = document.getElementById('users-table-body');
         const logContainer = document.getElementById('log-container');
         const totalUsersEl = document.getElementById('total-users');
         const lastUpdatedEl = document.getElementById('last-updated-users');
         const autoScrollCheck = document.getElementById('auto-scroll');
+        const modal = document.getElementById('inbox-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalSubtitle = document.getElementById('modal-subtitle');
+        const modalContent = document.getElementById('modal-content');
 
-        // Fungsi Format Tanggal
+        // --- DASHBOARD LOGIC ---
+
         function timeAgo(dateString) {
             const date = new Date(dateString);
             const now = new Date();
             const seconds = Math.floor((now - date) / 1000);
-            
             if (seconds < 60) return 'Just now';
             const minutes = Math.floor(seconds / 60);
             if (minutes < 60) return `${minutes}m ago`;
@@ -142,35 +182,32 @@
         async function fetchDashboardData() {
             try {
                 const response = await fetch('/api/admin/data');
-                if (!response.ok) throw new Error('Network response was not ok');
+                if (!response.ok) throw new Error('API Error');
                 const data = await response.json();
 
                 renderUsers(data.stats);
                 renderLogs(data.logs);
 
-                // Update timestamps
                 const now = new Date();
-                lastUpdatedEl.textContent = "Last update: " + now.toLocaleTimeString();
+                lastUpdatedEl.textContent = "Updated: " + now.toLocaleTimeString();
+                lastUpdatedEl.classList.remove('text-red-500');
 
             } catch (error) {
-                console.error('Error fetching data:', error);
-                lastUpdatedEl.textContent = "Connection lost. Retrying...";
+                console.error(error);
+                lastUpdatedEl.textContent = "Retrying...";
                 lastUpdatedEl.classList.add('text-red-500');
             }
         }
 
         function renderUsers(users) {
             totalUsersEl.textContent = users.length;
-            
             if (users.length === 0) {
                 usersTableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No active sessions yet.</td></tr>`;
                 return;
             }
 
-            // Rebuild table rows
             let html = '';
             users.forEach(user => {
-                // Badge Logic
                 let badgeClass = user.inbox_count > 0 
                     ? 'bg-green-100 text-green-800 ring-green-600/20' 
                     : 'bg-gray-100 text-gray-600 ring-gray-500/10';
@@ -194,22 +231,23 @@
                             ${timeAgo(user.created_at)}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
-                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${badgeClass}">
-                                ${user.inbox_count} Msgs
-                            </span>
+                             <button onclick="viewUserInbox('${user.email}')" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${badgeClass} hover:ring-blue-500 hover:text-blue-700 transition cursor-pointer">
+                                ${user.inbox_count} Msgs <i data-lucide="eye" class="ml-1 h-3 w-3"></i>
+                            </button>
                         </td>
                     </tr>
                 `;
             });
-            usersTableBody.innerHTML = html;
+            // Simple DOM update (could be optimized but fine for admin)
+            if (usersTableBody.innerHTML !== html) {
+                usersTableBody.innerHTML = html;
+                lucide.createIcons();
+            }
         }
 
         function renderLogs(logs) {
             if (!logs || logs.length === 0) return;
-            
-            // Log logic: simple replace content
             const logHtml = logs.map(line => {
-                // Highlight keywords
                 let styledLine = line
                     .replace(/\[ERROR\]/g, '<span class="text-red-500 font-bold">[ERROR]</span>')
                     .replace(/\[SMTP\]/g, '<span class="text-blue-400 font-bold">[SMTP]</span>')
@@ -217,20 +255,82 @@
                 return `<div class="mb-1 border-b border-gray-800 pb-1 hover:bg-white/5">${styledLine}</div>`;
             }).join('');
 
-            // Only update if content changed to avoid jitter (simple check)
             if (logContainer.innerHTML !== logHtml) {
                 logContainer.innerHTML = logHtml;
-                // Auto scroll to bottom
-                if (autoScrollCheck.checked) {
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                }
+                if (autoScrollCheck.checked) logContainer.scrollTop = logContainer.scrollHeight;
             }
         }
 
-        // --- Init ---
-        fetchDashboardData(); // First load
-        
-        // Auto Refresh every 3 seconds
+        // --- MODAL LOGIC (View Inbox) ---
+
+        async function viewUserInbox(email) {
+            // 1. Show Modal & Loading State
+            modal.classList.remove('hidden');
+            modalTitle.textContent = email;
+            modalSubtitle.textContent = "Loading messages...";
+            modalContent.innerHTML = `<div class="flex justify-center py-8"><i data-lucide="loader-2" class="animate-spin h-8 w-8 text-blue-500"></i></div>`;
+            lucide.createIcons();
+
+            try {
+                // 2. Fetch Data
+                const res = await fetch(`/api/admin/inbox/${email}`);
+                if(!res.ok) throw new Error("Failed to fetch inbox");
+                const emails = await res.json();
+
+                // 3. Render Emails
+                if (emails.length === 0) {
+                    modalContent.innerHTML = `
+                        <div class="text-center py-10 border-2 border-dashed border-gray-200 rounded-lg">
+                            <i data-lucide="inbox" class="h-10 w-10 text-gray-300 mx-auto mb-2"></i>
+                            <p class="text-gray-500">Inbox is empty.</p>
+                        </div>`;
+                } else {
+                    let emailHtml = '<div class="space-y-4">';
+                    emails.forEach(email => {
+                        emailHtml += `
+                            <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                                <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-start">
+                                    <div>
+                                        <p class="text-xs text-gray-500">From:</p>
+                                        <p class="text-sm font-semibold text-gray-800 break-all">${escapeHtml(email.from)}</p>
+                                    </div>
+                                    <div class="text-right whitespace-nowrap ml-2">
+                                        <p class="text-xs text-gray-400">${new Date(email.date).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                <div class="px-4 py-2 border-b border-gray-100">
+                                     <p class="text-sm font-bold text-gray-800">${escapeHtml(email.subject)}</p>
+                                </div>
+                                <div class="px-4 py-3 text-sm text-gray-600 font-mono bg-white overflow-x-auto whitespace-pre-wrap">
+                                    ${escapeHtml(email.body)}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    emailHtml += '</div>';
+                    modalContent.innerHTML = emailHtml;
+                }
+                modalSubtitle.textContent = `${emails.length} messages found.`;
+
+            } catch (err) {
+                modalContent.innerHTML = `<p class="text-red-500 text-center">Error loading inbox: ${err.message}</p>`;
+            }
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Init
+        fetchDashboardData();
         setInterval(fetchDashboardData, 3000);
 
     </script>
