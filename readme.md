@@ -1,4 +1,4 @@
-# 📧 SilverMail - MultiDomain Temporary Email System
+# 📧 SilverMail - MultiDomain
 
 ![Ubuntu 22.04](https://img.shields.io/badge/OS-Ubuntu%20Server%2022.04-orange?style=flat-square&logo=ubuntu)
 ![Python](https://img.shields.io/badge/Python-3.x-blue?style=flat-square&logo=python)
@@ -48,7 +48,7 @@ Unduh source code SilverMail ke server Anda.
 
 ```bash
 # Clone repository
-git clone [https://github.com/swwillbemine/SilverMail-MultiPlatform](https://github.com/swwillbemine/SilverMail-MultiPlatform)
+git clone https://github.com/swwillbemine/SilverMail-MultiPlatform
 
 # Masuk ke direktori project
 cd SilverMail-MultiDomain
