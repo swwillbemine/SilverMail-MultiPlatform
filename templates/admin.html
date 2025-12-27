@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SilverMail Admin Pro</title>
+    <title>Admin Command Center</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -23,367 +24,314 @@
         .log-console::-webkit-scrollbar { width: 6px; }
         .log-console::-webkit-scrollbar-track { background: #1e293b; }
         .log-console::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        .progress-bar { transition: width 0.5s ease-in-out; }
+        [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-900">
+<body class="bg-slate-50 min-h-screen text-slate-900" x-data="adminApp()">
 
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex items-center gap-3">
-                    <div class="bg-slate-900 text-white p-1.5 rounded-lg"><i data-lucide="layout-dashboard" class="h-5 w-5"></i></div>
-                    <h1 class="text-lg font-bold tracking-tight">SilverMail <span class="text-slate-400 font-normal">Admin</span></h1>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
-                    </span>
+                <div class="flex items-center gap-4">
+                    <div class="bg-indigo-600 text-white p-2 rounded-lg shadow-lg shadow-indigo-200"><i data-lucide="layout-grid" class="h-5 w-5"></i></div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight text-slate-900">Control Panel</h1>
+                        <p class="text-xs text-slate-500 font-mono" x-text="system.metrics?.public_ip || 'Loading IP...'"></p>
+                    </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <a href="/" target="_blank" class="text-sm font-medium text-slate-500 hover:text-slate-900 transition flex items-center gap-1">
-                        <i data-lucide="external-link" class="w-4 h-4"></i> Public
+                
+                <div class="flex items-center gap-2">
+                    <button @click="restartSystem()" class="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition shadow-sm border border-red-700">
+                        <i data-lucide="power" class="w-3 h-3"></i> RESTART SYSTEM
+                    </button>
+                    
+                    <div class="h-6 w-px bg-slate-200 mx-2"></div>
+
+                    <a href="/" target="_blank" class="text-sm font-medium text-slate-500 hover:text-indigo-600 transition flex items-center gap-1.5 px-3 py-2 hover:bg-slate-50 rounded-md">
+                        <i data-lucide="external-link" class="w-4 h-4"></i> Public View
                     </a>
-                    <div class="h-4 w-px bg-slate-200"></div>
-                    <a href="/admin/logout" class="text-sm font-medium text-red-600 hover:text-red-700 transition">Logout</a>
+                    <a href="/admin/logout" class="text-sm font-medium text-slate-500 hover:text-red-600 transition flex items-center gap-1.5 px-3 py-2 hover:bg-red-50 rounded-md">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <p class="text-xs font-medium text-slate-500 uppercase">vCPU Load</p>
-                        <h3 class="text-2xl font-bold text-slate-900" id="metric-cpu">0%</h3>
-                    </div>
-                    <i data-lucide="cpu" class="h-5 w-5 text-slate-400"></i>
-                </div>
-                <div class="w-full bg-slate-100 rounded-full h-1.5">
-                    <div id="bar-cpu" class="bg-indigo-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <p class="text-xs font-medium text-slate-500 uppercase">Memory</p>
-                        <h3 class="text-2xl font-bold text-slate-900" id="metric-ram">0%</h3>
-                        <p class="text-xs text-slate-400 mt-0.5" id="detail-ram">0/0 GB</p>
-                    </div>
-                    <i data-lucide="memory-stick" class="h-5 w-5 text-slate-400"></i>
-                </div>
-                <div class="w-full bg-slate-100 rounded-full h-1.5">
-                    <div id="bar-ram" class="bg-purple-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <p class="text-xs font-medium text-slate-500 uppercase">Storage / DB</p>
-                        <h3 class="text-2xl font-bold text-slate-900" id="metric-disk">0%</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">DB Size: <span id="detail-db">0 MB</span></p>
-                    </div>
-                    <i data-lucide="hard-drive" class="h-5 w-5 text-slate-400"></i>
-                </div>
-                <div class="w-full bg-slate-100 rounded-full h-1.5">
-                    <div id="bar-disk" class="bg-amber-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
-                </div>
-            </div>
-
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <p class="text-xs font-medium text-slate-500 uppercase">Uptime</p>
-                        <h3 class="text-xl font-bold text-slate-900" id="metric-uptime">0h</h3>
-                    </div>
-                    <i data-lucide="clock" class="h-5 w-5 text-slate-400"></i>
-                </div>
-                <div class="flex gap-4 mt-2 pt-2 border-t border-slate-100">
-                    <div class="flex items-center gap-1.5">
-                        <i data-lucide="arrow-up" class="w-3 h-3 text-blue-500"></i>
-                        <span class="text-xs font-mono text-slate-600" id="net-sent">0 MB</span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                        <i data-lucide="arrow-down" class="w-3 h-3 text-emerald-500"></i>
-                        <span class="text-xs font-mono text-slate-600" id="net-recv">0 MB</span>
-                    </div>
-                </div>
-            </div>
+        <div class="flex space-x-1 rounded-xl bg-slate-200/50 p-1 w-fit">
+            <button @click="tab = 'overview'" :class="tab === 'overview' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-sm font-bold rounded-lg transition">Overview & Logs</button>
+            <button @click="tab = 'domains'" :class="tab === 'domains' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'" class="px-4 py-2 text-sm font-bold rounded-lg transition">Domains & Config</button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[600px]">
-                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
-                    <div>
-                        <h2 class="font-bold text-slate-800 flex items-center gap-2">
-                            <i data-lucide="users" class="w-4 h-4 text-slate-500"></i> User Sessions
-                        </h2>
-                        <p class="text-xs text-slate-500">Total Active: <span id="total-users" class="font-bold">0</span></p>
+        <div x-show="tab === 'overview'" class="space-y-6 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><i data-lucide="cpu" class="w-16 h-16"></i></div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Processor</p>
+                    <h3 class="text-2xl font-bold text-slate-800 mt-1" x-text="system.metrics?.cpu_usage + '%'">0%</h3>
+                    <p class="text-xs text-slate-500 mt-1" x-text="system.metrics?.cpu_count + ' Cores @ ' + system.metrics?.cpu_freq">...</p>
+                    <div class="w-full bg-slate-100 h-1 mt-3 rounded-full overflow-hidden">
+                        <div class="bg-indigo-500 h-full transition-all duration-1000" :style="'width: ' + system.metrics?.cpu_usage + '%'"></div>
                     </div>
-                    <span id="last-updated" class="text-xs text-slate-400 font-mono">Syncing...</span>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><i data-lucide="memory-stick" class="w-16 h-16"></i></div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Memory</p>
+                    <h3 class="text-2xl font-bold text-slate-800 mt-1" x-text="system.metrics?.ram_percent + '%'">0%</h3>
+                    <p class="text-xs text-slate-500 mt-1" x-text="system.metrics?.ram_used + ' / ' + system.metrics?.ram_total + ' GB'">...</p>
+                    <div class="w-full bg-slate-100 h-1 mt-3 rounded-full overflow-hidden">
+                        <div class="bg-purple-500 h-full transition-all duration-1000" :style="'width: ' + system.metrics?.ram_percent + '%'"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><i data-lucide="globe" class="w-16 h-16"></i></div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Public IP & OS</p>
+                    <h3 class="text-lg font-bold text-slate-800 mt-1 truncate" x-text="system.metrics?.public_ip || 'Checking...'">...</h3>
+                    <p class="text-xs text-slate-500 mt-1 truncate" x-text="system.metrics?.os_info || 'Linux'">Linux</p>
+                    <p class="text-xs text-slate-400 mt-0.5 truncate" x-text="system.metrics?.hostname || 'localhost'">localhost</p>
                 </div>
                 
-                <div class="overflow-y-auto flex-1">
-                    <table class="min-w-full divide-y divide-slate-100">
-                        <thead class="bg-slate-50 sticky top-0 z-10">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
-                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Created</th>
-                                <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-slate-100" id="users-table-body">
-                            </tbody>
-                    </table>
+                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><i data-lucide="activity" class="w-16 h-16"></i></div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Network IO</p>
+                    <div class="flex gap-4 mt-2">
+                        <div>
+                            <p class="text-xs text-slate-400">Upload</p>
+                            <p class="font-bold text-slate-800" x-text="system.metrics?.net_sent">0 MB</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Download</p>
+                            <p class="font-bold text-slate-800" x-text="system.metrics?.net_recv">0 MB</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-slate-900 rounded-xl shadow-lg border border-slate-800 flex flex-col h-[600px] overflow-hidden">
-                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
-                    <h3 class="text-xs font-bold text-slate-400 flex items-center gap-2 uppercase tracking-wide">
-                        <i data-lucide="terminal" class="w-3 h-3 text-emerald-500"></i> System Log
-                    </h3>
-                    <div class="flex gap-3">
-                        <button onclick="clearLogs()" class="text-xs text-slate-500 hover:text-red-400 transition" title="Clear Logs">
-                            <i data-lucide="trash" class="w-3 h-3"></i>
-                        </button>
-                        <label class="flex items-center text-xs text-slate-500 cursor-pointer hover:text-slate-300">
-                            <input type="checkbox" id="auto-scroll" checked class="mr-1.5 accent-emerald-500 rounded text-xs bg-slate-800 border-slate-700"> Auto-scroll
-                        </label>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[500px]">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
+                        <h2 class="font-bold text-slate-700 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Active Sessions (<span x-text="system.stats.length">0</span>)</h2>
+                        <span class="text-xs text-green-600 font-bold bg-green-100 px-2 py-1 rounded-md animate-pulse">LIVE</span>
+                    </div>
+                    <div class="overflow-y-auto flex-1">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">User</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">IP</th>
+                                    <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase">Inbox</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                <template x-for="user in system.stats" :key="user.email">
+                                    <tr class="hover:bg-slate-50 transition group">
+                                        <td class="px-6 py-3 text-sm font-medium text-slate-900" x-text="user.email"></td>
+                                        <td class="px-6 py-3 text-xs text-slate-500 font-mono" x-text="user.ip_address"></td>
+                                        <td class="px-6 py-3 text-right space-x-2">
+                                            <button @click="viewInbox(user.email)" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-bold hover:bg-indigo-100 transition" x-text="user.inbox_count + ' Msgs'"></button>
+                                            <button @click="deleteUser(user.email)" class="text-slate-400 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <tr x-show="system.stats.length === 0"><td colspan="3" class="px-6 py-10 text-center text-slate-400">No active users.</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="p-4 flex-1 overflow-y-auto log-console" id="log-container">
-                    <div class="text-slate-600 italic">Connecting to log stream...</div>
+
+                <div class="bg-slate-900 rounded-xl shadow-lg border border-slate-800 flex flex-col h-[500px]">
+                    <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center rounded-t-xl">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            <i data-lucide="terminal" class="w-3 h-3 text-emerald-500"></i> System Log (Newest Top)
+                        </h3>
+                        <button @click="clearLogs()" class="text-slate-600 hover:text-red-400"><i data-lucide="trash" class="w-3 h-3"></i></button>
+                    </div>
+                    <div class="p-4 flex-1 overflow-y-auto log-console relative">
+                        <template x-for="line in system.logs">
+                            <div class="mb-1 border-b border-slate-800/50 pb-1 break-all" 
+                                 :class="{
+                                    'text-red-400 font-bold': line.includes('[ERROR]'),
+                                    'text-emerald-400': line.includes('[SMTP]'),
+                                    'text-yellow-300': line.includes('[Launcher]'),
+                                    'text-slate-300': !line.includes('[ERROR]') && !line.includes('[SMTP]')
+                                 }" 
+                                 x-text="line"></div>
+                        </template>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <div x-show="tab === 'domains'" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in" x-cloak>
+            
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2"><i data-lucide="settings" class="w-5 h-5"></i> Branding Settings</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Service Name (Shown to Users)</label>
+                        <div class="flex gap-2">
+                            <input type="text" x-model="settings.appName" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            <button @click="updateSettings()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-indigo-700 transition">Save</button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Example: "GhostMail", "TempBox". Requires restart to apply fully.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2"><i data-lucide="globe" class="w-5 h-5"></i> Active Domains</h3>
+                
+                <div class="flex gap-2 mb-6">
+                    <input type="text" x-model="newDomain" @keyup.enter="addDomain()" placeholder="example.com" class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition">
+                    <button @click="addDomain()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-emerald-700 transition flex items-center gap-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Add
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <template x-for="domain in system.settings?.domains" :key="domain">
+                        <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-100 group">
+                            <span class="text-sm font-medium text-slate-700" x-text="'@' + domain"></span>
+                            <button @click="removeDomain(domain)" class="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <div id="inbox-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
-        <div class="fixed inset-0 z-10 overflow-y-auto">
-            <div class="flex min-h-full items-center justify-center p-4">
-                <div class="relative transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all w-full max-w-2xl border border-slate-200">
-                    <div class="bg-slate-50 px-4 py-4 border-b border-slate-200 flex justify-between items-center">
-                        <div>
-                            <h3 class="text-base font-bold text-slate-900" id="modal-title">Checking Inbox</h3>
-                            <p class="text-xs text-slate-500" id="modal-subtitle">...</p>
+    <div x-show="modalOpen" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true" x-cloak>
+        <div class="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+            <div class="fixed inset-0 bg-slate-900/75 transition-opacity" @click="modalOpen = false"></div>
+            <div class="relative transform overflow-hidden rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-xl border border-slate-200">
+                <div class="bg-white px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="text-base font-semibold leading-6 text-slate-900" x-text="selectedUser">Inbox</h3>
+                    <button @click="modalOpen = false"><i data-lucide="x" class="w-5 h-5 text-slate-400"></i></button>
+                </div>
+                <div class="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+                    <template x-if="inboxMessages.length === 0">
+                        <p class="text-center text-slate-500 py-8 italic">No messages found.</p>
+                    </template>
+                    <template x-for="msg in inboxMessages" :key="msg.id">
+                        <div class="border border-slate-100 rounded-lg p-3 bg-slate-50 hover:bg-white transition hover:shadow-sm">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-xs font-bold text-slate-700" x-text="msg.sender || msg.from"></span>
+                                <span class="text-xs text-slate-400" x-text="new Date(msg.received_at || msg.date).toLocaleString()"></span>
+                            </div>
+                            <div class="text-sm font-bold text-indigo-600 mb-2" x-text="msg.subject"></div>
+                            <div class="text-xs text-slate-600 font-mono whitespace-pre-wrap bg-white p-2 border border-slate-100 rounded" x-text="msg.body"></div>
                         </div>
-                        <button onclick="closeModal()" class="p-1 rounded-md hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition">
-                            <i data-lucide="x" class="h-5 w-5"></i>
-                        </button>
-                    </div>
-                    <div class="max-h-[60vh] overflow-y-auto bg-white p-0" id="modal-content"></div>
+                    </template>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        lucide.createIcons();
-        
-        const els = {
-            usersTable: document.getElementById('users-table-body'),
-            logContainer: document.getElementById('log-container'),
-            totalUsers: document.getElementById('total-users'),
-            lastUpdated: document.getElementById('last-updated'),
-            autoScroll: document.getElementById('auto-scroll'),
-            modal: document.getElementById('inbox-modal'),
-            modalContent: document.getElementById('modal-content'),
-            metrics: {
-                cpu: document.getElementById('metric-cpu'),
-                cpuBar: document.getElementById('bar-cpu'),
-                ram: document.getElementById('metric-ram'),
-                ramBar: document.getElementById('bar-ram'),
-                ramDetail: document.getElementById('detail-ram'),
-                disk: document.getElementById('metric-disk'),
-                diskBar: document.getElementById('bar-disk'),
-                dbDetail: document.getElementById('detail-db'),
-                uptime: document.getElementById('metric-uptime'),
-                netSent: document.getElementById('net-sent'),
-                netRecv: document.getElementById('net-recv')
-            }
-        };
-
-        function timeAgo(dateString) {
-            const date = new Date(dateString);
-            const seconds = Math.floor((new Date() - date) / 1000);
-            if (seconds < 60) return 'Just now';
-            const minutes = Math.floor(seconds / 60);
-            if (minutes < 60) return `${minutes}m ago`;
-            const hours = Math.floor(minutes / 60);
-            if (hours < 24) return `${hours}h ago`;
-            return date.toLocaleDateString();
-        }
-
-        async function fetchDashboardData() {
-            try {
-                const response = await fetch('/api/admin/data');
-                if (!response.ok) throw new Error('API Error');
-                const data = await response.json();
-
-                renderMetrics(data.metrics, data.db_size);
-                renderUsers(data.stats);
-                renderLogs(data.logs);
-
-                els.lastUpdated.textContent = new Date().toLocaleTimeString();
-                els.lastUpdated.classList.remove('text-red-500');
-            } catch (error) {
-                console.error(error);
-                els.lastUpdated.textContent = "Offline";
-                els.lastUpdated.classList.add('text-red-500');
-            }
-        }
-
-        function renderMetrics(m, dbSize) {
-            if(!m) return;
-            // CPU
-            els.metrics.cpu.textContent = m.cpu + "%";
-            els.metrics.cpuBar.style.width = m.cpu + "%";
-            els.metrics.cpuBar.className = `h-1.5 rounded-full progress-bar ${m.cpu > 80 ? 'bg-red-500' : 'bg-indigo-500'}`;
-            
-            // RAM
-            els.metrics.ram.textContent = m.ram_percent + "%";
-            els.metrics.ramDetail.textContent = m.ram_detail;
-            els.metrics.ramBar.style.width = m.ram_percent + "%";
-            
-            // DISK
-            els.metrics.disk.textContent = m.disk + "%";
-            els.metrics.dbDetail.textContent = dbSize;
-            els.metrics.diskBar.style.width = m.disk + "%";
-            
-            // NET & UPTIME
-            els.metrics.uptime.textContent = m.uptime;
-            els.metrics.netSent.textContent = m.net_sent;
-            els.metrics.netRecv.textContent = m.net_recv;
-        }
-
-        function renderUsers(users) {
-            els.totalUsers.textContent = users.length;
-            if (users.length === 0) {
-                els.usersTable.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-slate-400 italic">No active users.</td></tr>`;
-                return;
-            }
-
-            let html = '';
-            users.forEach(user => {
-                const hasMail = user.inbox_count > 0;
-                html += `
-                    <tr class="hover:bg-slate-50 transition border-b border-slate-50 group">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs border border-slate-200 uppercase">
-                                    ${user.email.substring(0, 2)}
-                                </div>
-                                <div class="ml-3">
-                                    <div class="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition">${user.email}</div>
-                                    <div class="text-xs text-slate-400 font-mono">${user.ip_address}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            ${timeAgo(user.created_at)}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                             <button onclick="viewUserInbox('${user.email}')" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-md ${hasMail ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'} transition">
-                                ${user.inbox_count} <i data-lucide="mail" class="ml-1.5 w-3 h-3"></i>
-                            </button>
-                            <button onclick="deleteUser('${user.email}')" class="inline-flex items-center p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition" title="Delete User">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            if (els.usersTable.innerHTML !== html) {
-                els.usersTable.innerHTML = html;
-                lucide.createIcons();
-            }
-        }
-
-        function renderLogs(logs) {
-            if (!logs || logs.length === 0) return;
-            const logHtml = logs.map(line => {
-                let colorClass = "text-slate-300";
-                if(line.includes("[ERROR]")) colorClass = "text-red-400 font-bold";
-                if(line.includes("[SMTP]")) colorClass = "text-emerald-400";
-                if(line.includes("[Launcher]")) colorClass = "text-yellow-300";
+        function adminApp() {
+            return {
+                tab: 'overview',
+                system: { stats: [], logs: [], metrics: null, settings: null },
+                settings: { appName: '' },
+                newDomain: '',
+                modalOpen: false,
+                selectedUser: '',
+                inboxMessages: [],
                 
-                return `<div class="mb-1 border-b border-slate-800/50 pb-1 hover:bg-white/5 ${colorClass}">${line}</div>`;
-            }).join('');
+                init() {
+                    this.fetchData();
+                    setInterval(() => this.fetchData(), 3000);
+                    lucide.createIcons();
+                },
 
-            if (els.logContainer.innerHTML !== logHtml) {
-                els.logContainer.innerHTML = logHtml;
-                if (els.autoScroll.checked) els.logContainer.scrollTop = els.logContainer.scrollHeight;
-            }
-        }
+                async fetchData() {
+                    try {
+                        const res = await fetch('/api/admin/data');
+                        const data = await res.json();
+                        this.system = data;
+                        
+                        // Sync settings input once loaded
+                        if (!this.settings.appName && data.settings?.app_name) {
+                            this.settings.appName = data.settings.app_name;
+                        }
+                        
+                        // Re-init icons for dynamic content
+                        this.$nextTick(() => lucide.createIcons());
+                    } catch (e) { console.error(e); }
+                },
 
-        // --- ACTIONS ---
-
-        async function viewUserInbox(email) {
-            els.modal.classList.remove('hidden');
-            document.getElementById('modal-title').textContent = email;
-            document.getElementById('modal-subtitle').textContent = "Fetching messages...";
-            els.modalContent.innerHTML = `<div class="flex justify-center py-12"><i data-lucide="loader-2" class="animate-spin h-8 w-8 text-indigo-500"></i></div>`;
-            lucide.createIcons();
-
-            try {
-                const res = await fetch(`/api/admin/inbox/${email}`);
-                const emails = await res.json();
-                
-                if (emails.length === 0) {
-                    els.modalContent.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-16 text-center">
-                            <div class="bg-slate-100 p-4 rounded-full mb-3"><i data-lucide="inbox" class="h-6 w-6 text-slate-400"></i></div>
-                            <p class="text-slate-500 font-medium">Inbox is empty</p>
-                        </div>`;
-                } else {
-                    let html = '';
-                    emails.forEach(e => {
-                        html += `
-                            <div class="border-b border-slate-100 hover:bg-slate-50 transition p-4">
-                                <div class="flex justify-between items-start mb-1">
-                                    <span class="font-bold text-slate-800 text-sm">${escapeHtml(e.sender || e.from)}</span>
-                                    <span class="text-xs text-slate-400">${new Date(e.received_at || e.date).toLocaleString()}</span>
-                                </div>
-                                <div class="text-sm font-medium text-indigo-600 mb-2">${escapeHtml(e.subject)}</div>
-                                <div class="text-xs text-slate-600 font-mono bg-slate-50 p-2 rounded border border-slate-200 whitespace-pre-wrap">${escapeHtml(e.body)}</div>
-                            </div>
-                        `;
+                async updateSettings() {
+                    if(!confirm("Change App Name?")) return;
+                    await fetch('/api/admin/update_settings', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ app_name: this.settings.appName })
                     });
-                    els.modalContent.innerHTML = html;
+                    alert("Settings saved. Please restart system to apply everywhere.");
+                    this.fetchData();
+                },
+
+                async addDomain() {
+                    if(!this.newDomain) return;
+                    const res = await fetch('/api/admin/add_domain', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ domain: this.newDomain })
+                    });
+                    const d = await res.json();
+                    if(d.error) alert(d.error);
+                    else {
+                        this.newDomain = '';
+                        this.fetchData();
+                    }
+                },
+
+                async removeDomain(domain) {
+                    if(!confirm(`Remove @${domain}?`)) return;
+                    await fetch('/api/admin/remove_domain', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ domain })
+                    });
+                    this.fetchData();
+                },
+
+                async viewInbox(email) {
+                    this.selectedUser = email;
+                    this.inboxMessages = [];
+                    this.modalOpen = true;
+                    const res = await fetch(`/api/admin/inbox/${email}`);
+                    this.inboxMessages = await res.json();
+                },
+
+                async deleteUser(email) {
+                    if(!confirm(`Delete ${email}?`)) return;
+                    await fetch('/api/admin/delete_user', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ email })
+                    });
+                    this.fetchData();
+                },
+
+                async clearLogs() {
+                    if(confirm("Clear system logs?")) {
+                        await fetch('/api/admin/clear_logs', { method: 'POST' });
+                        this.fetchData();
+                    }
+                },
+
+                async restartSystem() {
+                    if(confirm("DANGER: Restart Server? (Connection will be lost momentarily)")) {
+                        await fetch('/api/admin/restart_system', { method: 'POST' });
+                        alert("System restarting... Wait 10 seconds then refresh.");
+                    }
                 }
-                document.getElementById('modal-subtitle').textContent = `${emails.length} message(s) found.`;
-            } catch (err) {
-                els.modalContent.innerHTML = `<p class="text-red-500 p-4">Error loading data.</p>`;
             }
-            lucide.createIcons();
         }
-
-        async function deleteUser(email) {
-            if(!confirm(`Delete user ${email} and all their messages?`)) return;
-            await fetch('/api/admin/delete_user', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({email})
-            });
-            fetchDashboardData(); // Force refresh
-        }
-
-        async function clearLogs() {
-            if(!confirm("Clear all system logs?")) return;
-            await fetch('/api/admin/clear_logs', {method: 'POST'});
-        }
-
-        function closeModal() { els.modal.classList.add('hidden'); }
-        function escapeHtml(text) { return text ? String(text).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])) : ''; }
-
-        // Init
-        fetchDashboardData();
-        setInterval(fetchDashboardData, 2000); // 2 seconds refresh rate for metrics
     </script>
 </body>
 </html>

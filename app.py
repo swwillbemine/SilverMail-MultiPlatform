@@ -3,7 +3,11 @@ import json
 import random
 import string
 import time
-import psutil # Library untuk cek CPU/RAM Real
+import psutil
+import platform
+import socket
+import subprocess
+import urllib.request
 from functools import wraps
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 
@@ -19,7 +23,7 @@ template_dir = os.path.join(base_dir, 'templates')
 
 app = Flask(__name__, template_folder=template_dir)
 
-# Load Config
+# --- CONFIG & DATA HELPER ---
 def load_json_file(filename, default_value):
     try:
         file_path = os.path.join(base_dir, filename)
@@ -28,55 +32,81 @@ def load_json_file(filename, default_value):
     except:
         return default_value
 
+def save_json_file(filename, data):
+    try:
+        file_path = os.path.join(base_dir, filename)
+        with open(file_path, 'w') as f:
+            json.dump(data, f, indent=4)
+        return True
+    except:
+        return False
+
+# Load Initial Configs
 ALLOWED_DOMAINS = load_json_file('domains.json', ["localhost"])
 NAME_LIST = load_json_file('names.json', ["user"])
 ADMIN_CONFIG = load_json_file('config.json', {
     "admin_username": "admin", 
     "admin_password": "password",
-    "secret_key": "secret"
+    "secret_key": "secret",
+    "app_name": "SilverMail"
 })
 
 app.secret_key = ADMIN_CONFIG.get("secret_key")
 ADMIN_USERNAME = ADMIN_CONFIG.get("admin_username")
 ADMIN_PASSWORD = ADMIN_CONFIG.get("admin_password")
+APP_NAME = ADMIN_CONFIG.get("app_name", "SilverMail")
 
-# --- HELPER SYSTEM MONITOR ---
-def get_server_metrics():
-    """Mengambil data real-time VPS"""
+# --- SYSTEM METRICS HELPER ---
+def get_public_ip():
+    try:
+        return urllib.request.urlopen('https://api.ipify.org', timeout=3).read().decode('utf8')
+    except:
+        return "Unknown (Timeout)"
+
+def get_detailed_metrics():
+    """Mengambil data real-time VPS Lengkap"""
     # CPU
     cpu_usage = psutil.cpu_percent(interval=None)
+    cpu_freq = psutil.cpu_freq()
+    cpu_freq_current = f"{round(cpu_freq.current, 0)} Mhz" if cpu_freq else "N/A"
     
     # RAM
     ram = psutil.virtual_memory()
-    ram_usage = ram.percent
-    ram_total = round(ram.total / (1024**3), 2) # GB
-    ram_used = round(ram.used / (1024**3), 2)   # GB
     
     # DISK
     disk = psutil.disk_usage('/')
-    disk_usage = disk.percent
     
     # UPTIME
     boot_time = psutil.boot_time()
     uptime_seconds = time.time() - boot_time
     uptime_hours = round(uptime_seconds / 3600, 1)
 
-    # NETWORK (Bytes Sent/Recv since boot)
+    # NETWORK
     net = psutil.net_io_counters()
-    net_sent = round(net.bytes_sent / (1024**2), 1) # MB
-    net_recv = round(net.bytes_recv / (1024**2), 1) # MB
+    net_sent = round(net.bytes_sent / (1024**2), 1)
+    net_recv = round(net.bytes_recv / (1024**2), 1)
 
+    # OS INFO
+    os_info = f"{platform.system()} {platform.release()}"
+    
     return {
-        "cpu": cpu_usage,
-        "ram_percent": ram_usage,
-        "ram_detail": f"{ram_used}/{ram_total} GB",
-        "disk": disk_usage,
+        "cpu_usage": cpu_usage,
+        "cpu_count": psutil.cpu_count(logical=True),
+        "cpu_freq": cpu_freq_current,
+        "ram_percent": ram.percent,
+        "ram_used": round(ram.used / (1024**3), 2),
+        "ram_total": round(ram.total / (1024**3), 2),
+        "disk_percent": disk.percent,
+        "disk_free": round(disk.free / (1024**3), 1),
         "uptime": f"{uptime_hours} Hours",
         "net_sent": f"{net_sent} MB",
-        "net_recv": f"{net_recv} MB"
+        "net_recv": f"{net_recv} MB",
+        "os_info": os_info,
+        "hostname": socket.gethostname(),
+        "public_ip": get_public_ip() # Note: Ini sedikit memperlambat request, idealnya dicache
     }
 
-# --- AUTH DECORATOR ---
+# --- AUTH ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -88,16 +118,24 @@ def login_required(f):
 # --- PUBLIC ROUTES ---
 @app.route('/')
 def index():
+    # Reload config untuk memastikan nama aplikasi terupdate
+    cfg = load_json_file('config.json', {})
+    current_app_name = cfg.get('app_name', 'SilverMail')
+    
+    # Reload domains
+    domains = load_json_file('domains.json', ["localhost"])
+    
     current_email = session.get('email')
-    return render_template('index.html', domains=ALLOWED_DOMAINS, email=current_email)
+    return render_template('index.html', domains=domains, email=current_email, app_name=current_app_name)
 
 @app.route('/generate', methods=['POST'])
 def generate_email():
+    domains = load_json_file('domains.json', []) # Always load fresh domains
     data = request.json
     username = data.get('username', '').strip()
     domain = data.get('domain')
 
-    if domain not in ALLOWED_DOMAINS:
+    if domain not in domains:
         return jsonify({"error": "Invalid domain"}), 400
 
     if not username:
@@ -110,7 +148,6 @@ def generate_email():
     
     full_email = f"{username}@{domain}".lower()
     session['email'] = full_email
-    
     register_user(full_email, request.remote_addr)
     
     display_name = username.capitalize()
@@ -131,7 +168,13 @@ def admin_login():
     if request.method == 'POST':
         user = request.form.get('username')
         pwd = request.form.get('password')
-        if user == ADMIN_USERNAME and pwd == ADMIN_PASSWORD:
+        
+        # Load credentials fresh from file (in case changed manually)
+        cfg = load_json_file('config.json', {})
+        real_user = cfg.get('admin_username', ADMIN_USERNAME)
+        real_pass = cfg.get('admin_password', ADMIN_PASSWORD)
+
+        if user == real_user and pwd == real_pass:
             session['admin_logged_in'] = True
             return redirect(url_for('admin_dashboard'))
         else:
@@ -148,28 +191,29 @@ def admin_logout():
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
-# --- ADMIN API (DATA REAL-TIME) ---
+# --- ADMIN API ---
 
 @app.route('/api/admin/data')
 @login_required
 def api_admin_data():
-    # 1. User Stats
     stats = get_user_stats()
-    
-    # 2. System Logs
     logs = get_system_logs(lines=100)
-    
-    # 3. Real Server Metrics (CPU, RAM, etc)
-    server_metrics = get_server_metrics()
-    
-    # 4. DB Size
+    metrics = get_detailed_metrics() # Includes Public IP
     db_size = get_db_size()
+    
+    # Load settings
+    cfg = load_json_file('config.json', {})
+    domains = load_json_file('domains.json', [])
 
     return jsonify({
         "stats": stats,
         "logs": logs,
-        "metrics": server_metrics,
-        "db_size": f"{db_size} MB"
+        "metrics": metrics,
+        "db_size": f"{db_size} MB",
+        "settings": {
+            "app_name": cfg.get("app_name", "SilverMail"),
+            "domains": domains
+        }
     })
 
 @app.route('/api/admin/inbox/<path:email>')
@@ -182,17 +226,67 @@ def api_admin_user_inbox(email):
 @login_required
 def api_delete_user():
     data = request.json
-    email = data.get('email')
-    if email:
-        delete_user_data(email)
-        return jsonify({"status": "success"})
-    return jsonify({"error": "No email provided"}), 400
+    delete_user_data(data.get('email'))
+    return jsonify({"status": "success"})
 
 @app.route('/api/admin/clear_logs', methods=['POST'])
 @login_required
 def api_clear_logs():
     clear_system_logs()
     return jsonify({"status": "success"})
+
+# --- SETTINGS API ---
+
+@app.route('/api/admin/update_settings', methods=['POST'])
+@login_required
+def api_update_settings():
+    data = request.json
+    new_name = data.get('app_name')
+    
+    if new_name:
+        cfg = load_json_file('config.json', {})
+        cfg['app_name'] = new_name
+        save_json_file('config.json', cfg)
+        return jsonify({"status": "success", "message": "App name updated"})
+    return jsonify({"error": "Invalid data"}), 400
+
+@app.route('/api/admin/add_domain', methods=['POST'])
+@login_required
+def api_add_domain():
+    data = request.json
+    new_domain = data.get('domain', '').strip().lower()
+    
+    if new_domain:
+        domains = load_json_file('domains.json', [])
+        if new_domain not in domains:
+            domains.append(new_domain)
+            save_json_file('domains.json', domains)
+            return jsonify({"status": "success"})
+        return jsonify({"error": "Domain already exists"}), 400
+    return jsonify({"error": "Invalid domain"}), 400
+
+@app.route('/api/admin/remove_domain', methods=['POST'])
+@login_required
+def api_remove_domain():
+    data = request.json
+    domain_to_remove = data.get('domain')
+    
+    domains = load_json_file('domains.json', [])
+    if domain_to_remove in domains:
+        domains.remove(domain_to_remove)
+        save_json_file('domains.json', domains)
+        return jsonify({"status": "success"})
+    return jsonify({"error": "Domain not found"}), 400
+
+@app.route('/api/admin/restart_system', methods=['POST'])
+@login_required
+def api_restart_system():
+    # Restart service via systemctl (requires root)
+    try:
+        subprocess.Popen(['systemctl', 'restart', 'silvermail'])
+        return jsonify({"status": "success", "message": "Server restarting..."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

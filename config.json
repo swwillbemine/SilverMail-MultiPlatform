@@ -1,5 +1,6 @@
 {
     "admin_username": "admin",
     "admin_password": "GantiPasswordIni123!",
-    "secret_key": "rahasia_banget_loh_ya"
+    "secret_key": "rahasia_banget_loh_ya",
+    "app_name": "SilverMail"
 }
