@@ -67,14 +67,15 @@
                 <span class="font-bold tracking-tight text-lg">{{ app_name }}</span>
             </div>
             <div class="flex items-center gap-3">
-                <span class="text-xs font-medium px-2.5 py-1 rounded-full bg-green-100 text-green-700 flex items-center gap-1.5">
-                    <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                    Online
-                </span>
-            </div>
+            <a href="/docs" class="inline-flex items-center gap-1.5
+                text-xs font-medium px-2.5 py-1 rounded-full
+                bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition">
+
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+                Docs
+            </a>
+        </div>
+
         </div>
     </header>
 
@@ -117,13 +118,13 @@
             </div>
         </div>
 
-        <div id="active-email-container" class="hidden rounded-2xl border border-blue-100 bg-blue-50/50 p-6 animate-slide-up shadow-sm relative overflow-hidden group">
+        <div id="active-email-container" class="hidden rounded-2xl border border-zinc-100 bg-zinc-50/50 p-6 animate-slide-up shadow-sm relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <i data-lucide="mail-open" class="h-24 w-24 text-blue-600"></i>
+                <i data-lucide="mail-open" class="h-24 w-24 text-zinc-600"></i>
             </div>
             
             <div class="relative z-10">
-                <p class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Active Inbox</p>
+                <p class="text-xs font-bold text-zinc-600 uppercase tracking-widest mb-1">Active Inbox</p>
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                     <div>
                         <h1 id="display-email" class="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight break-all">...</h1>
@@ -131,14 +132,14 @@
                             Hi, <span id="name-text">User</span>! Waiting for messages...
                         </p>
                     </div>
-                    <button onclick="copyEmailMain()" id="btn-copy-main" class="flex items-center justify-center gap-2 bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 px-5 py-2.5 rounded-xl font-semibold shadow-sm transition-all active:scale-95">
+                    <button onclick="copyEmailMain()" id="btn-copy-main" class="flex items-center justify-center gap-2 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-100 hover:border-zinc-300 px-5 py-2.5 rounded-xl font-semibold shadow-sm transition-all active:scale-95">
                         <i data-lucide="copy" class="h-4 w-4"></i> <span id="copy-text-main">Copy Address</span>
                     </button>
                 </div>
                 
-                <div class="mt-6 flex items-center gap-3 text-xs text-blue-400 font-medium">
-                    <div class="h-1 flex-1 bg-blue-200 rounded-full overflow-hidden">
-                        <div id="progress-bar" class="h-full bg-blue-500 transition-all duration-1000 ease-linear" style="width: 100%"></div>
+                <div class="mt-6 flex items-center gap-3 text-xs text-zinc-400 font-medium">
+                    <div class="h-1 flex-1 bg-zinc-200 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="h-full bg-zinc-900 transition-all duration-1000 ease-linear" style="width: 100%"></div>
                     </div>
                     <span id="timer-display">5s</span>
                 </div>
@@ -172,7 +173,7 @@
         <div class="container mx-auto px-4">
             <a href="https://github.com/swwillbemine/SilverMail-MultiPlatform" target="_blank" class="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-zinc-900 transition-colors group">
                 <i data-lucide="github" class="h-4 w-4 group-hover:scale-110 transition-transform"></i>
-                Created <Wbr></Wbr>ith ❤️ for Silver Wolf
+                Created <Wbr></Wbr>With Silver Wolf
             </a>
         </div>
     </footer>
