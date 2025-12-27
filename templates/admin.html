@@ -3,149 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SilverMail Admin Dashboard</title>
+    <title>SilverMail Admin Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        .log-console {
-            background-color: #1e1e1e;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.75rem;
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] }
+                }
+            }
         }
-        .log-console::-webkit-scrollbar { width: 8px; }
-        .log-console::-webkit-scrollbar-track { background: #1e1e1e; }
-        .log-console::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
-        
-        /* Modal Transitions */
-        [x-cloak] { display: none !important; }
+    </script>
+    <style>
+        .log-console { background-color: #0f172a; color: #4ade80; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+        .log-console::-webkit-scrollbar { width: 6px; }
+        .log-console::-webkit-scrollbar-track { background: #1e293b; }
+        .log-console::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .progress-bar { transition: width 0.5s ease-in-out; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-slate-50 min-h-screen text-slate-900">
 
-    <nav class="bg-white shadow-sm border-b sticky top-0 z-40">
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
-                <div class="flex items-center space-x-3">
-                    <i data-lucide="shield" class="h-6 w-6 text-blue-600"></i>
-                    <h1 class="text-xl font-bold text-gray-800">SilverMail <span class="text-xs font-normal text-gray-500 ml-2">Admin Dashboard</span></h1>
-                    <span class="flex h-3 w-3 relative ml-4">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                <div class="flex items-center gap-3">
+                    <div class="bg-slate-900 text-white p-1.5 rounded-lg"><i data-lucide="layout-dashboard" class="h-5 w-5"></i></div>
+                    <h1 class="text-lg font-bold tracking-tight">SilverMail <span class="text-slate-400 font-normal">Admin</span></h1>
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live
                     </span>
-                    <span class="text-xs text-green-600 font-semibold">LIVE</span>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/" target="_blank" class="text-gray-500 hover:text-blue-600 flex items-center text-sm transition">
-                        <i data-lucide="external-link" class="w-4 h-4 mr-1"></i> Public View
+                <div class="flex items-center gap-3">
+                    <a href="/" target="_blank" class="text-sm font-medium text-slate-500 hover:text-slate-900 transition flex items-center gap-1">
+                        <i data-lucide="external-link" class="w-4 h-4"></i> Public
                     </a>
-                    <a href="/admin/logout" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition shadow-sm">
-                        Logout
-                    </a>
+                    <div class="h-4 w-px bg-slate-200"></div>
+                    <a href="/admin/logout" class="text-sm font-medium text-red-600 hover:text-red-700 transition">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">Active Users</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1" id="total-users">0</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">vCPU Load</p>
+                        <h3 class="text-2xl font-bold text-slate-900" id="metric-cpu">0%</h3>
+                    </div>
+                    <i data-lucide="cpu" class="h-5 w-5 text-slate-400"></i>
                 </div>
-                <div class="p-3 rounded-full bg-blue-50 text-blue-600">
-                    <i data-lucide="users" class="w-6 h-6"></i>
+                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                    <div id="bar-cpu" class="bg-indigo-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
                 </div>
             </div>
-            
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500">System Status</p>
-                    <p class="text-lg font-bold text-green-600 mt-1">Operational</p>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Memory</p>
+                        <h3 class="text-2xl font-bold text-slate-900" id="metric-ram">0%</h3>
+                        <p class="text-xs text-slate-400 mt-0.5" id="detail-ram">0/0 GB</p>
+                    </div>
+                    <i data-lucide="memory-stick" class="h-5 w-5 text-slate-400"></i>
                 </div>
-                <div class="p-3 rounded-full bg-green-50 text-green-600">
-                    <i data-lucide="activity" class="w-6 h-6"></i>
+                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                    <div id="bar-ram" class="bg-purple-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Storage / DB</p>
+                        <h3 class="text-2xl font-bold text-slate-900" id="metric-disk">0%</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">DB Size: <span id="detail-db">0 MB</span></p>
+                    </div>
+                    <i data-lucide="hard-drive" class="h-5 w-5 text-slate-400"></i>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-1.5">
+                    <div id="bar-disk" class="bg-amber-500 h-1.5 rounded-full progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Uptime</p>
+                        <h3 class="text-xl font-bold text-slate-900" id="metric-uptime">0h</h3>
+                    </div>
+                    <i data-lucide="clock" class="h-5 w-5 text-slate-400"></i>
+                </div>
+                <div class="flex gap-4 mt-2 pt-2 border-t border-slate-100">
+                    <div class="flex items-center gap-1.5">
+                        <i data-lucide="arrow-up" class="w-3 h-3 text-blue-500"></i>
+                        <span class="text-xs font-mono text-slate-600" id="net-sent">0 MB</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <i data-lucide="arrow-down" class="w-3 h-3 text-emerald-500"></i>
+                        <span class="text-xs font-mono text-slate-600" id="net-recv">0 MB</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div class="bg-white shadow-lg rounded-xl border border-gray-200 overflow-hidden flex flex-col h-[600px]">
-                <div class="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                    <h3 class="font-semibold text-gray-700 flex items-center">
-                        <i data-lucide="inbox" class="w-4 h-4 mr-2"></i> Recent Sessions
-                    </h3>
-                    <span class="text-xs text-gray-400" id="last-updated-users">Updating...</span>
+            <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[600px]">
+                <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
+                    <div>
+                        <h2 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="users" class="w-4 h-4 text-slate-500"></i> User Sessions
+                        </h2>
+                        <p class="text-xs text-slate-500">Total Active: <span id="total-users" class="font-bold">0</span></p>
+                    </div>
+                    <span id="last-updated" class="text-xs text-slate-400 font-mono">Syncing...</span>
                 </div>
                 
                 <div class="overflow-y-auto flex-1">
-                    <table class="min-w-full divide-y divide-gray-100">
-                        <thead class="bg-gray-50 sticky top-0">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50 sticky top-0 z-10">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User / Email</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Created</th>
+                                <th class="px-6 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-100" id="users-table-body">
-                            <tr><td colspan="3" class="px-6 py-10 text-center text-gray-400">Loading data...</td></tr>
-                        </tbody>
+                        <tbody class="bg-white divide-y divide-slate-100" id="users-table-body">
+                            </tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="bg-[#1e1e1e] shadow-lg rounded-xl overflow-hidden flex flex-col h-[600px] border border-gray-700">
-                <div class="px-4 py-3 bg-[#2d2d2d] border-b border-gray-700 flex justify-between items-center">
-                    <h3 class="text-xs font-medium text-gray-300 flex items-center uppercase tracking-wide">
-                        <i data-lucide="terminal" class="w-3 h-3 mr-2 text-green-400"></i> System Logs
+            <div class="bg-slate-900 rounded-xl shadow-lg border border-slate-800 flex flex-col h-[600px] overflow-hidden">
+                <div class="px-4 py-3 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="text-xs font-bold text-slate-400 flex items-center gap-2 uppercase tracking-wide">
+                        <i data-lucide="terminal" class="w-3 h-3 text-emerald-500"></i> System Log
                     </h3>
-                    <div class="flex items-center space-x-2">
-                        <label class="flex items-center text-xs text-gray-400 cursor-pointer hover:text-white">
-                            <input type="checkbox" id="auto-scroll" checked class="mr-1 accent-green-500 rounded text-xs"> Auto-scroll
+                    <div class="flex gap-3">
+                        <button onclick="clearLogs()" class="text-xs text-slate-500 hover:text-red-400 transition" title="Clear Logs">
+                            <i data-lucide="trash" class="w-3 h-3"></i>
+                        </button>
+                        <label class="flex items-center text-xs text-slate-500 cursor-pointer hover:text-slate-300">
+                            <input type="checkbox" id="auto-scroll" checked class="mr-1.5 accent-emerald-500 rounded text-xs bg-slate-800 border-slate-700"> Auto-scroll
                         </label>
                     </div>
                 </div>
                 <div class="p-4 flex-1 overflow-y-auto log-console" id="log-container">
-                    <div class="text-gray-500 italic">Waiting for logs stream...</div>
+                    <div class="text-slate-600 italic">Connecting to log stream...</div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <div id="inbox-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" onclick="closeModal()"></div>
-
+        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
         <div class="fixed inset-0 z-10 overflow-y-auto">
-            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
-                    
-                    <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b">
-                        <div class="sm:flex sm:items-center">
-                            <div class="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <i data-lucide="mail" class="h-6 w-6 text-blue-600"></i>
-                            </div>
-                            <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">Checking Inbox...</h3>
-                                <div class="mt-2">
-                                    <p class="text-sm text-gray-500" id="modal-subtitle">Fetching emails from server.</p>
-                                </div>
-                            </div>
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative transform overflow-hidden rounded-xl bg-white shadow-2xl transition-all w-full max-w-2xl border border-slate-200">
+                    <div class="bg-slate-50 px-4 py-4 border-b border-slate-200 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900" id="modal-title">Checking Inbox</h3>
+                            <p class="text-xs text-slate-500" id="modal-subtitle">...</p>
                         </div>
-                        <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                            <i data-lucide="x" class="h-6 w-6"></i>
+                        <button onclick="closeModal()" class="p-1 rounded-md hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition">
+                            <i data-lucide="x" class="h-5 w-5"></i>
                         </button>
                     </div>
-
-                    <div class="bg-gray-50 px-4 py-4 sm:p-6 max-h-[60vh] overflow-y-auto" id="modal-content">
-                        </div>
-
-                    <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t">
-                        <button type="button" onclick="closeModal()" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">Close</button>
-                    </div>
+                    <div class="max-h-[60vh] overflow-y-auto bg-white p-0" id="modal-content"></div>
                 </div>
             </div>
         </div>
@@ -154,23 +186,32 @@
     <script>
         lucide.createIcons();
         
-        // Element References
-        const usersTableBody = document.getElementById('users-table-body');
-        const logContainer = document.getElementById('log-container');
-        const totalUsersEl = document.getElementById('total-users');
-        const lastUpdatedEl = document.getElementById('last-updated-users');
-        const autoScrollCheck = document.getElementById('auto-scroll');
-        const modal = document.getElementById('inbox-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalSubtitle = document.getElementById('modal-subtitle');
-        const modalContent = document.getElementById('modal-content');
-
-        // --- DASHBOARD LOGIC ---
+        const els = {
+            usersTable: document.getElementById('users-table-body'),
+            logContainer: document.getElementById('log-container'),
+            totalUsers: document.getElementById('total-users'),
+            lastUpdated: document.getElementById('last-updated'),
+            autoScroll: document.getElementById('auto-scroll'),
+            modal: document.getElementById('inbox-modal'),
+            modalContent: document.getElementById('modal-content'),
+            metrics: {
+                cpu: document.getElementById('metric-cpu'),
+                cpuBar: document.getElementById('bar-cpu'),
+                ram: document.getElementById('metric-ram'),
+                ramBar: document.getElementById('bar-ram'),
+                ramDetail: document.getElementById('detail-ram'),
+                disk: document.getElementById('metric-disk'),
+                diskBar: document.getElementById('bar-disk'),
+                dbDetail: document.getElementById('detail-db'),
+                uptime: document.getElementById('metric-uptime'),
+                netSent: document.getElementById('net-sent'),
+                netRecv: document.getElementById('net-recv')
+            }
+        };
 
         function timeAgo(dateString) {
             const date = new Date(dateString);
-            const now = new Date();
-            const seconds = Math.floor((now - date) / 1000);
+            const seconds = Math.floor((new Date() - date) / 1000);
             if (seconds < 60) return 'Just now';
             const minutes = Math.floor(seconds / 60);
             if (minutes < 60) return `${minutes}m ago`;
@@ -185,62 +226,81 @@
                 if (!response.ok) throw new Error('API Error');
                 const data = await response.json();
 
+                renderMetrics(data.metrics, data.db_size);
                 renderUsers(data.stats);
                 renderLogs(data.logs);
 
-                const now = new Date();
-                lastUpdatedEl.textContent = "Updated: " + now.toLocaleTimeString();
-                lastUpdatedEl.classList.remove('text-red-500');
-
+                els.lastUpdated.textContent = new Date().toLocaleTimeString();
+                els.lastUpdated.classList.remove('text-red-500');
             } catch (error) {
                 console.error(error);
-                lastUpdatedEl.textContent = "Retrying...";
-                lastUpdatedEl.classList.add('text-red-500');
+                els.lastUpdated.textContent = "Offline";
+                els.lastUpdated.classList.add('text-red-500');
             }
         }
 
+        function renderMetrics(m, dbSize) {
+            if(!m) return;
+            // CPU
+            els.metrics.cpu.textContent = m.cpu + "%";
+            els.metrics.cpuBar.style.width = m.cpu + "%";
+            els.metrics.cpuBar.className = `h-1.5 rounded-full progress-bar ${m.cpu > 80 ? 'bg-red-500' : 'bg-indigo-500'}`;
+            
+            // RAM
+            els.metrics.ram.textContent = m.ram_percent + "%";
+            els.metrics.ramDetail.textContent = m.ram_detail;
+            els.metrics.ramBar.style.width = m.ram_percent + "%";
+            
+            // DISK
+            els.metrics.disk.textContent = m.disk + "%";
+            els.metrics.dbDetail.textContent = dbSize;
+            els.metrics.diskBar.style.width = m.disk + "%";
+            
+            // NET & UPTIME
+            els.metrics.uptime.textContent = m.uptime;
+            els.metrics.netSent.textContent = m.net_sent;
+            els.metrics.netRecv.textContent = m.net_recv;
+        }
+
         function renderUsers(users) {
-            totalUsersEl.textContent = users.length;
+            els.totalUsers.textContent = users.length;
             if (users.length === 0) {
-                usersTableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-8 text-center text-gray-400">No active sessions yet.</td></tr>`;
+                els.usersTable.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-slate-400 italic">No active users.</td></tr>`;
                 return;
             }
 
             let html = '';
             users.forEach(user => {
-                let badgeClass = user.inbox_count > 0 
-                    ? 'bg-green-100 text-green-800 ring-green-600/20' 
-                    : 'bg-gray-100 text-gray-600 ring-gray-500/10';
-                
-                let rowClass = user.inbox_count > 0 ? 'bg-green-50/30' : '';
-
+                const hasMail = user.inbox_count > 0;
                 html += `
-                    <tr class="hover:bg-gray-50 transition duration-150 ${rowClass}">
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-50 group">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
-                                <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase border border-blue-200">
+                                <div class="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs border border-slate-200 uppercase">
                                     ${user.email.substring(0, 2)}
                                 </div>
                                 <div class="ml-3">
-                                    <div class="text-sm font-medium text-gray-900">${user.email}</div>
-                                    <div class="text-xs text-gray-400">${user.ip_address}</div>
+                                    <div class="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition">${user.email}</div>
+                                    <div class="text-xs text-slate-400 font-mono">${user.ip_address}</div>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                             ${timeAgo(user.created_at)}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
-                             <button onclick="viewUserInbox('${user.email}')" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${badgeClass} hover:ring-blue-500 hover:text-blue-700 transition cursor-pointer">
-                                ${user.inbox_count} Msgs <i data-lucide="eye" class="ml-1 h-3 w-3"></i>
+                        <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                             <button onclick="viewUserInbox('${user.email}')" class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-md ${hasMail ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'} transition">
+                                ${user.inbox_count} <i data-lucide="mail" class="ml-1.5 w-3 h-3"></i>
+                            </button>
+                            <button onclick="deleteUser('${user.email}')" class="inline-flex items-center p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition" title="Delete User">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </td>
                     </tr>
                 `;
             });
-            // Simple DOM update (could be optimized but fine for admin)
-            if (usersTableBody.innerHTML !== html) {
-                usersTableBody.innerHTML = html;
+            if (els.usersTable.innerHTML !== html) {
+                els.usersTable.innerHTML = html;
                 lucide.createIcons();
             }
         }
@@ -248,91 +308,82 @@
         function renderLogs(logs) {
             if (!logs || logs.length === 0) return;
             const logHtml = logs.map(line => {
-                let styledLine = line
-                    .replace(/\[ERROR\]/g, '<span class="text-red-500 font-bold">[ERROR]</span>')
-                    .replace(/\[SMTP\]/g, '<span class="text-blue-400 font-bold">[SMTP]</span>')
-                    .replace(/Starting/g, '<span class="text-yellow-300">Starting</span>');
-                return `<div class="mb-1 border-b border-gray-800 pb-1 hover:bg-white/5">${styledLine}</div>`;
+                let colorClass = "text-slate-300";
+                if(line.includes("[ERROR]")) colorClass = "text-red-400 font-bold";
+                if(line.includes("[SMTP]")) colorClass = "text-emerald-400";
+                if(line.includes("[Launcher]")) colorClass = "text-yellow-300";
+                
+                return `<div class="mb-1 border-b border-slate-800/50 pb-1 hover:bg-white/5 ${colorClass}">${line}</div>`;
             }).join('');
 
-            if (logContainer.innerHTML !== logHtml) {
-                logContainer.innerHTML = logHtml;
-                if (autoScrollCheck.checked) logContainer.scrollTop = logContainer.scrollHeight;
+            if (els.logContainer.innerHTML !== logHtml) {
+                els.logContainer.innerHTML = logHtml;
+                if (els.autoScroll.checked) els.logContainer.scrollTop = els.logContainer.scrollHeight;
             }
         }
 
-        // --- MODAL LOGIC (View Inbox) ---
+        // --- ACTIONS ---
 
         async function viewUserInbox(email) {
-            // 1. Show Modal & Loading State
-            modal.classList.remove('hidden');
-            modalTitle.textContent = email;
-            modalSubtitle.textContent = "Loading messages...";
-            modalContent.innerHTML = `<div class="flex justify-center py-8"><i data-lucide="loader-2" class="animate-spin h-8 w-8 text-blue-500"></i></div>`;
+            els.modal.classList.remove('hidden');
+            document.getElementById('modal-title').textContent = email;
+            document.getElementById('modal-subtitle').textContent = "Fetching messages...";
+            els.modalContent.innerHTML = `<div class="flex justify-center py-12"><i data-lucide="loader-2" class="animate-spin h-8 w-8 text-indigo-500"></i></div>`;
             lucide.createIcons();
 
             try {
-                // 2. Fetch Data
                 const res = await fetch(`/api/admin/inbox/${email}`);
-                if(!res.ok) throw new Error("Failed to fetch inbox");
                 const emails = await res.json();
-
-                // 3. Render Emails
+                
                 if (emails.length === 0) {
-                    modalContent.innerHTML = `
-                        <div class="text-center py-10 border-2 border-dashed border-gray-200 rounded-lg">
-                            <i data-lucide="inbox" class="h-10 w-10 text-gray-300 mx-auto mb-2"></i>
-                            <p class="text-gray-500">Inbox is empty.</p>
+                    els.modalContent.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-16 text-center">
+                            <div class="bg-slate-100 p-4 rounded-full mb-3"><i data-lucide="inbox" class="h-6 w-6 text-slate-400"></i></div>
+                            <p class="text-slate-500 font-medium">Inbox is empty</p>
                         </div>`;
                 } else {
-                    let emailHtml = '<div class="space-y-4">';
-                    emails.forEach(email => {
-                        emailHtml += `
-                            <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                                <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-start">
-                                    <div>
-                                        <p class="text-xs text-gray-500">From:</p>
-                                        <p class="text-sm font-semibold text-gray-800 break-all">${escapeHtml(email.from)}</p>
-                                    </div>
-                                    <div class="text-right whitespace-nowrap ml-2">
-                                        <p class="text-xs text-gray-400">${new Date(email.date).toLocaleString()}</p>
-                                    </div>
+                    let html = '';
+                    emails.forEach(e => {
+                        html += `
+                            <div class="border-b border-slate-100 hover:bg-slate-50 transition p-4">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-bold text-slate-800 text-sm">${escapeHtml(e.sender || e.from)}</span>
+                                    <span class="text-xs text-slate-400">${new Date(e.received_at || e.date).toLocaleString()}</span>
                                 </div>
-                                <div class="px-4 py-2 border-b border-gray-100">
-                                     <p class="text-sm font-bold text-gray-800">${escapeHtml(email.subject)}</p>
-                                </div>
-                                <div class="px-4 py-3 text-sm text-gray-600 font-mono bg-white overflow-x-auto whitespace-pre-wrap">
-                                    ${escapeHtml(email.body)}
-                                </div>
+                                <div class="text-sm font-medium text-indigo-600 mb-2">${escapeHtml(e.subject)}</div>
+                                <div class="text-xs text-slate-600 font-mono bg-slate-50 p-2 rounded border border-slate-200 whitespace-pre-wrap">${escapeHtml(e.body)}</div>
                             </div>
                         `;
                     });
-                    emailHtml += '</div>';
-                    modalContent.innerHTML = emailHtml;
+                    els.modalContent.innerHTML = html;
                 }
-                modalSubtitle.textContent = `${emails.length} messages found.`;
-
+                document.getElementById('modal-subtitle').textContent = `${emails.length} message(s) found.`;
             } catch (err) {
-                modalContent.innerHTML = `<p class="text-red-500 text-center">Error loading inbox: ${err.message}</p>`;
+                els.modalContent.innerHTML = `<p class="text-red-500 p-4">Error loading data.</p>`;
             }
             lucide.createIcons();
         }
 
-        function closeModal() {
-            modal.classList.add('hidden');
+        async function deleteUser(email) {
+            if(!confirm(`Delete user ${email} and all their messages?`)) return;
+            await fetch('/api/admin/delete_user', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email})
+            });
+            fetchDashboardData(); // Force refresh
         }
 
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        async function clearLogs() {
+            if(!confirm("Clear all system logs?")) return;
+            await fetch('/api/admin/clear_logs', {method: 'POST'});
         }
+
+        function closeModal() { els.modal.classList.add('hidden'); }
+        function escapeHtml(text) { return text ? String(text).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[m])) : ''; }
 
         // Init
         fetchDashboardData();
-        setInterval(fetchDashboardData, 3000);
-
+        setInterval(fetchDashboardData, 2000); // 2 seconds refresh rate for metrics
     </script>
 </body>
 </html>

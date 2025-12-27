@@ -2,7 +2,6 @@ import sqlite3
 import os
 from datetime import datetime
 
-# Gunakan absolute path agar aman saat dijalankan systemd
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_NAME = os.path.join(BASE_DIR, "emails.db")
 LOG_FILE = os.path.join(BASE_DIR, "system.log")
@@ -10,8 +9,6 @@ LOG_FILE = os.path.join(BASE_DIR, "system.log")
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    
-    # Tabel Email
     c.execute('''
         CREATE TABLE IF NOT EXISTS emails (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,8 +19,6 @@ def init_db():
             received_at TIMESTAMP
         )
     ''')
-
-    # Tabel Users (Stats)
     c.execute('''
         CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
@@ -31,7 +26,6 @@ def init_db():
             ip_address TEXT
         )
     ''')
-    
     conn.commit()
     conn.close()
 
@@ -54,9 +48,7 @@ def get_emails_for_user(email_address):
     return [dict(row) for row in rows]
 
 # --- FUNGSI USER & STATS ---
-
 def register_user(email_address, ip_address):
-    """Mencatat user baru saat generate email"""
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute('INSERT OR IGNORE INTO users (email, created_at, ip_address) VALUES (?, ?, ?)',
@@ -65,12 +57,9 @@ def register_user(email_address, ip_address):
     conn.close()
 
 def get_user_stats():
-    """Mengambil list user beserta jumlah inbox mereka"""
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    
-    # Query join untuk menghitung jumlah email per user
     query = '''
         SELECT u.email, u.created_at, u.ip_address, COUNT(e.id) as inbox_count 
         FROM users u 
@@ -83,17 +72,33 @@ def get_user_stats():
     conn.close()
     return [dict(row) for row in rows]
 
-# --- FUNGSI LOGS (YANG SEBELUMNYA HILANG) ---
+def delete_user_data(email):
+    """Menghapus user dan semua emailnya"""
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('DELETE FROM emails WHERE recipient = ?', (email,))
+    c.execute('DELETE FROM users WHERE email = ?', (email,))
+    conn.commit()
+    conn.close()
 
-def get_system_logs(lines=100):
-    """Membaca file system.log"""
+def get_db_size():
+    """Mengambil ukuran file database dalam MB"""
+    if os.path.exists(DB_NAME):
+        size_bytes = os.path.getsize(DB_NAME)
+        return round(size_bytes / (1024 * 1024), 2) # Convert to MB
+    return 0
+
+# --- FUNGSI LOGS ---
+def get_system_logs(lines=200):
     if not os.path.exists(LOG_FILE):
         return ["Log file not found at: " + LOG_FILE]
-    
     try:
         with open(LOG_FILE, 'r') as f:
             all_lines = f.readlines()
-            # Ambil N baris terakhir dan balik urutannya (terbaru di atas)
             return all_lines[-lines:][::-1]
     except Exception as e:
         return [f"Error reading logs: {str(e)}"]
+
+def clear_system_logs():
+    """Menghapus isi log"""
+    open(LOG_FILE, 'w').close()

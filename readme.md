@@ -58,7 +58,7 @@ cd SilverMail-MultiPlatform
 Install library Python yang dibutuhkan oleh aplikasi.
 
 ```bash
-pip3 install flask aiosmtpd gunicorn
+pip3 install flask aiosmtpd gunicorn psutil
 ```
 ---
 
